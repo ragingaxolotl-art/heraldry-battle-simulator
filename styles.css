@@ -507,3 +507,8 @@ h3 {
 .ally-options label, .enemy-options label { display: flex; align-items: center; text-transform: none; overflow-wrap: anywhere; }
 .ally-options input, .enemy-options input { width: auto; }
 #allyResponses { line-height: 1.7; }
+
+.loss-table { overflow-x: auto; }
+.loss-table table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .85rem; }
+.loss-table th, .loss-table td { padding: 6px; text-align: right; border-bottom: 1px solid var(--line); }
+.loss-table th:first-child { text-align: left; }

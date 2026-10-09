@@ -37,3 +37,27 @@ assert.ok(turn.responses.some(line=>line.includes('turned against ally')));
 assert.deepEqual(diplomacy(['0-2','0-3'],['2-3'],100,0,0).sides,['A','B','A','A',null]);
 assert.deepEqual(diplomacy([],['0-2','1-2'],0,100,100).sides,['A','B',null,null,null]);
 console.log('Passed: hatred join, no hatred, simultaneous betrayal, no betrayal, enemies on both sides, fixed leaders.');
+vm.runInContext(`
+function combatTrial(terrain = 'plains') {
+  const forces = [
+    {index:0,name:'A',side:'A',gold:100,cannons:10,books:30,pens:100,mages:20},
+    {index:1,name:'B',side:'B',gold:100,cannons:10,books:30,pens:100,mages:20},
+    {index:2,name:'N',side:null,gold:100,cannons:10,books:30,pens:100,mages:20}
+  ];
+  const before = JSON.stringify(forces);
+  const battle = simulateCombat(forces, 3, terrain, () => .3);
+  return {battle, unchanged:before === JSON.stringify(forces), emptyPower: countryBasePower({...forces[0],cannons:0,books:0,pens:0,mages:0})};
+}`,context);
+const combat = JSON.parse(JSON.stringify(vm.runInContext('combatTrial()',context)));
+assert.equal(combat.unchanged,true);
+assert.equal(combat.emptyPower,0);
+assert.ok(combat.battle.rounds.length > 0);
+for (const record of combat.battle.casualties) for (const unit of record.units) {
+  assert.equal(unit.before,unit.lost + unit.remaining);
+  assert.ok(Number.isInteger(unit.remaining) && unit.remaining >= 0);
+  if (!record.side) assert.equal(unit.lost,0);
+}
+assert.ok(combat.battle.casualties[0].units.some(u=>u.lost>0));
+const fortified = JSON.parse(JSON.stringify(vm.runInContext("combatTrial('fortifications')",context)));
+assert.equal(fortified.battle.winnerSide,'B');
+console.log('Passed: casualty conservation, whole nonnegative survivors, neutral preservation, no source mutation, empty armies, defensive terrain.');

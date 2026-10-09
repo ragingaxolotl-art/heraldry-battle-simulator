@@ -1,76 +1,21 @@
 const COUNTRY_COUNT = 5;
 
 const sampleCountries = [
-  { name: "Algebravia", side: "A", gold: 420, cannons: 12, books: 9, pens: 46, mages: 7 },
-  { name: "The Republic of Recess", side: "B", gold: 350, cannons: 16, books: 5, pens: 38, mages: 9 },
-  { name: "Pencilvania", side: "A", gold: 250, cannons: 7, books: 14, pens: 61, mages: 3 },
-  { name: "The Chalk Coast", side: "B", gold: 510, cannons: 8, books: 12, pens: 29, mages: 11 },
-  { name: "Binderburg", side: "A", gold: 180, cannons: 6, books: 16, pens: 52, mages: 5 }
+  { name: "Valoria", side: "A", gold: 420, cannons: 12, books: 9, pens: 46, mages: 7 },
+  { name: "The Northern Republic", side: "B", gold: 350, cannons: 16, books: 5, pens: 38, mages: 9 },
+  { name: "Ironmark", side: "A", gold: 250, cannons: 7, books: 14, pens: 61, mages: 3 },
+  { name: "The Ashen Coast", side: "B", gold: 510, cannons: 8, books: 12, pens: 29, mages: 11 },
+  { name: "Westhaven", side: "A", gold: 180, cannons: 6, books: 16, pens: 52, mages: 5 }
 ];
 
-const roundOpeners = [
-  "The gym floor trembled as {country} rolled out {unit} with suspicious confidence.",
-  "{country} tried a brilliant hallway maneuver using {unit}, and everyone pretended it was in the treaty.",
-  "A dramatic banner wave from {country} gave {side} a loud morale boost.",
-  "{country} used spare gold to buy glitter stickers for the battle map. Somehow, it worked.",
-  "{country} attempted a cafeteria flank and accidentally discovered a better route.",
-  "{country} formed a defensive rectangle around the pencil sharpener.",
-  "A sudden quiz announcement stunned the battlefield for six whole seconds.",
-  "{country} shouted a battle slogan so catchy that even the other side clapped once."
+const UNIT_TYPES = [
+  {key: "cannons", label: "Artillery", weight: 13, exposure: 0.7},
+  {key: "books", label: "Archers", weight: 7, exposure: 0.85},
+  {key: "pens", label: "Infantry", weight: 4, exposure: 1.15},
+  {key: "mages", label: "Cavalry", weight: 10, exposure: 1}
 ];
-
-const unitMoments = {
-  cannons: [
-    "basketball cannons launched foam volleys in perfect arcs",
-    "basketball cannons bounced shots off the backboard of destiny",
-    "basketball cannons created a rolling orange wall of gym-class panic"
-  ],
-  books: [
-    "book launchers fired dictionaries with excellent citations",
-    "book launchers made a textbook blizzard across the field",
-    "book launchers sent novels spinning like scholarly comets"
-  ],
-  pens: [
-    "pen fighters fenced bravely with capped markers",
-    "pen fighters guarded the supply cart with heroic posture",
-    "pen fighters drew tactical arrows on everything"
-  ],
-  mages: [
-    "screech mages hit a note that made the windows reconsider their choices",
-    "screech mages cast the ancient spell of Too Much Volume",
-    "screech mages distracted everyone with legendary playground noise"
-  ]
-};
-
-const winnerEndings = [
-  "won after the other side's battle plan got covered in correction tape.",
-  "won because their supply line stayed organized and their banners looked extremely official.",
-  "won when the judges ruled that their strategy was confusing, but technically effective.",
-  "won after a final notebook charge scattered the last defenders into a harmless pile of backpack straps.",
-  "won because their screech mages saved one perfect yell for the exact wrong moment for the opposition.",
-  "won when their book launchers created enough homework fog to hide the winning maneuver."
-];
-
-const consequenceBank = [
-  { rank: "Knocked out", className: "knockout", text: "Sent to the recovery bench with a juice box and a very serious clipboard." },
-  { rank: "In-school detention", className: "detention", text: "Assigned to silently organize the royal pencil drawer during lunch." },
-  { rank: "After-school detention", className: "detention", text: "Required to clean confetti off the battle map while humming the losing anthem." },
-  { rank: "Suspension", className: "suspension", text: "Suspended from the next tournament round for excessive dramatic pointing." },
-  { rank: "Expelled", className: "expelled", text: "Expelled from the tournament realm and banished to the far end of the cafeteria line." },
-  { rank: "Knocked out", className: "knockout", text: "Briefly defeated by a flying notebook and a confusing rule clarification." },
-  { rank: "In-school detention", className: "detention", text: "Must rewrite the peace treaty in neat handwriting." },
-  { rank: "After-school detention", className: "detention", text: "Must return every launched book to the correct shelf by genre." },
-  { rank: "Suspension", className: "suspension", text: "Benched from diplomacy because the ambassador kept yelling 'objection' at clouds." },
-  { rank: "Expelled", className: "expelled", text: "Expelled from the council of snack privileges until the next fictional era." }
-];
-
-const chaosLabels = {
-  1: "Predictable",
-  2: "Orderly",
-  3: "Balanced",
-  4: "Wild",
-  5: "Total Nonsense"
-};
+const chaosLabels = {1: "Low", 2: "Limited", 3: "Moderate", 4: "High", 5: "Very high"};
+const armySize = country => UNIT_TYPES.reduce((sum, unit) => sum + country[unit.key], 0);
 
 const grid = document.querySelector("#countryGrid");
 const template = document.querySelector("#countryTemplate");
@@ -196,7 +141,11 @@ function setSample() {
   refreshCountryChoices();
   document.querySelector("#sideAName").value = "0";
   document.querySelector("#sideBName").value = "1";
-  formMessage.textContent = "Sample countries and alliances loaded. Allies each have a chance to help.";
+  results.classList.add("hidden");
+  lastReport = "";
+  copyButton.disabled = true;
+  downloadButton.disabled = true;
+  formMessage.textContent = "Sample countries, armies, and relationships restored.";
 }
 
 function resetForm() {
@@ -207,6 +156,7 @@ function resetForm() {
   document.querySelector("#allyChance").value = "60";
   document.querySelector("#hatredChance").value = "60";
   document.querySelector("#betrayalChance").value = "40";
+  document.querySelector("#terrain").value = "plains";
   chaosLevel.value = "3";
   chaosText.textContent = chaosLabels[3];
   createCountryCards();
@@ -224,39 +174,26 @@ function validate(countries) {
   if (document.querySelector("#sideAName").value === document.querySelector("#sideBName").value) {
     return "Choose two different countries to battle.";
   }
+  const attacker = Number(document.querySelector("#sideAName").value);
+  const defender = Number(document.querySelector("#sideBName").value);
+  if (!armySize(countries[attacker]) || !armySize(countries[defender])) return "Both selected countries need an army before they can fight.";
   return "";
 }
 
-function getUnitHighlight(country) {
-  const units = [
-    { key: "cannons", count: country.cannons },
-    { key: "books", count: country.books },
-    { key: "pens", count: country.pens },
-    { key: "mages", count: country.mages }
-  ].sort((a, b) => b.count - a.count);
-  const top = units[0].key;
-  return pick(unitMoments[top]);
-}
-
 function countryBasePower(country) {
-  const goldPower = Math.sqrt(country.gold) * 3.2;
-  const unitPower =
-    country.cannons * 13 +
-    country.books * 11 +
-    country.pens * 4 +
-    country.mages * 16;
-  const combinedArmsBonus = Math.min(country.cannons, country.books, country.mages) * 5;
-  const heraldryBonus = country.hasHeraldry ? 35 : 0;
-  const tooMuchGoldPenalty = country.gold > 5000 ? Math.log10(country.gold) * 12 : 0;
-  return Math.max(1, unitPower + goldPower + combinedArmsBonus + heraldryBonus - tooMuchGoldPenalty);
+  const size = armySize(country);
+  if (!size) return 0;
+  const supply = 1 + Math.min(0.2, country.gold / Math.max(size * 100, 1));
+  const combinedArms = UNIT_TYPES.every(unit => country[unit.key] > 0) ? 1.1 : 1;
+  return UNIT_TYPES.reduce((sum, unit) => sum + country[unit.key] * unit.weight, 0)
+    * supply * combinedArms * (country.hasHeraldry ? 1.03 : 1);
 }
 
 function scoreSide(countries, side) {
-  const members = countries.filter((country) => country.side === side);
+  const members = countries.filter((country) => country.side === side && armySize(country) > 0);
   const base = members.reduce((sum, country) => sum + countryBasePower(country), 0);
-  const teamwork = members.length > 1 ? members.length * 18 : 0;
-  const diversity =
-    Math.min(30, members.reduce((sum, country) => sum + Math.min(country.cannons, country.books, country.pens, country.mages), 0));
+  const teamwork = base * Math.min(0.08, Math.max(0, members.length - 1) * 0.025);
+  const diversity = 0;
   return {
     side,
     members,
@@ -265,32 +202,48 @@ function scoreSide(countries, side) {
   };
 }
 
-function withChaos(base, chaos) {
-  const swing = 0.08 + chaos * 0.065;
-  const multiplier = 1 + (Math.random() * 2 - 1) * swing;
-  return Math.max(1, base * multiplier + Math.random() * chaos * 25);
+function withChaos(base, chaos, random = Math.random) {
+  return base * (1 + (random() * 2 - 1) * (0.025 + chaos * 0.025));
 }
 
-function maybeUpset(sideA, sideB, finalA, finalB, chaos) {
-  const stronger = sideA.baseWithSynergy >= sideB.baseWithSynergy ? "A" : "B";
-  const weaker = stronger === "A" ? "B" : "A";
-  const finalWinner = finalA >= finalB ? "A" : "B";
-
-  if (finalWinner === weaker) {
-    return { happened: true, winner: weaker, reason: "The underdog's chaos roll overtook the stronger starting army." };
+function simulateCombat(countries, chaos, terrain, random = Math.random) {
+  const armies = countries.map(country => ({...country}));
+  const initialA = scoreSide(armies, "A").baseWithSynergy;
+  const initialB = scoreSide(armies, "B").baseWithSynergy;
+  const defense = {plains: 1, hills: 1.15, fortifications: 1.3}[terrain] || 1;
+  const rounds = [];
+  let finalA = 0, finalB = 0;
+  for (let round = 1; round <= 6; round++) {
+    finalA = withChaos(scoreSide(armies, "A").baseWithSynergy, chaos, random);
+    finalB = withChaos(scoreSide(armies, "B").baseWithSynergy * defense, chaos, random);
+    if (!finalA || !finalB) break;
+    const losses = {A: 0, B: 0};
+    // Both sides take losses from the same pre-round strength snapshot.
+    armies.forEach(country => {
+      if (!country.side) return;
+      const own = country.side === "A" ? finalA : finalB;
+      const enemy = country.side === "A" ? finalB : finalA;
+      const rate = Math.min(0.38, 0.055 * enemy / Math.max(own, 1));
+      UNIT_TYPES.forEach(unit => {
+        const expected = country[unit.key] * rate * unit.exposure;
+        const lost = Math.min(country[unit.key], Math.floor(expected) + (random() < expected % 1 ? 1 : 0));
+        country[unit.key] -= lost;
+        losses[country.side] += lost;
+      });
+    });
+    rounds.push(`Round ${round}: attacker lost ${losses.A} units; defender lost ${losses.B} units.`);
+    const remainingA = scoreSide(armies, "A").baseWithSynergy;
+    const remainingB = scoreSide(armies, "B").baseWithSynergy;
+    if (remainingA < initialA * 0.45 || remainingB < initialB * 0.45) break;
   }
-
-  const strongerScore = Math.max(sideA.baseWithSynergy, sideB.baseWithSynergy);
-  const weakerScore = Math.min(sideA.baseWithSynergy, sideB.baseWithSynergy);
-  const gap = strongerScore - weakerScore;
-  const closeness = Math.max(0, 1 - gap / Math.max(strongerScore, 1));
-  const upsetChance = 0.04 + chaos * 0.025 + closeness * 0.12;
-
-  if (Math.random() < upsetChance) {
-    return { happened: true, winner: weaker, reason: "A surprise ruling, lucky bounce, and loud hallway echo flipped the result." };
-  }
-
-  return { happened: false, winner: finalWinner, reason: "" };
+  const remainingA = scoreSide(armies, "A").baseWithSynergy;
+  const remainingB = scoreSide(armies, "B").baseWithSynergy;
+  const winnerSide = remainingA === 0 ? "B" : remainingB === 0 ? "A" : remainingA < initialA * 0.45 ? "B" : remainingB < initialB * 0.45 ? "A" : remainingA > remainingB * defense ? "A" : "B";
+  const casualties = countries.map((country, index) => ({
+    index: country.index, name: country.name, side: country.side,
+    units: UNIT_TYPES.map(unit => ({...unit, before: country[unit.key], lost: country[unit.key] - armies[index][unit.key], remaining: armies[index][unit.key]}))
+  }));
+  return {finalA: remainingA, finalB: remainingB * defense, winnerSide, casualties, rounds};
 }
 
 function resolveAllies(countries, attacker, defender, chance, random = Math.random, hatred = 60, betrayal = 40) {
@@ -394,10 +347,9 @@ function runBattle() {
   const chaos = Number(chaosLevel.value);
   const sideA = scoreSide(countries, "A");
   const sideB = scoreSide(countries, "B");
-  const finalA = withChaos(sideA.baseWithSynergy, chaos);
-  const finalB = withChaos(sideB.baseWithSynergy, chaos);
-  const upset = maybeUpset(sideA, sideB, finalA, finalB, chaos);
-  const winnerSide = upset.happened ? upset.winner : finalA >= finalB ? "A" : "B";
+  const combat = simulateCombat(countries, chaos, document.querySelector("#terrain").value);
+  const {finalA, finalB, winnerSide} = combat;
+  const upset = {happened: winnerSide !== (sideA.baseWithSynergy >= sideB.baseWithSynergy ? "A" : "B"), reason: "Terrain and battlefield attrition overcame the initial strength advantage."};
   const loserSide = winnerSide === "A" ? "B" : "A";
   const winner = winnerSide === "A" ? sideA : sideB;
   const loser = loserSide === "A" ? sideA : sideB;
@@ -409,6 +361,7 @@ function runBattle() {
   const total = Math.max(finalA + finalB, 1);
 
   renderResults({
+    combat,
     countries,
     sideA,
     sideB,
@@ -429,6 +382,11 @@ function runBattle() {
     chaos,
     upset
   });
+  combat.casualties.forEach(record => {
+    const card = grid.querySelectorAll(".country-card")[record.index];
+    record.units.forEach(unit => { card.querySelector(`.country-${unit.key}`).value = unit.remaining; });
+  });
+  formMessage.textContent = "Losses applied. Army fields now show survivors available for the next battle.";
 }
 
 function renderResults(model) {
@@ -453,11 +411,7 @@ function renderResults(model) {
     upset
   } = model;
 
-  const winVerb = pick(winnerEndings);
-  const closeness = margin / total;
-  const verdict = closeness < 0.06 ? "by a squeaky hallway squeaker margin" : closeness < 0.18 ? "after a close contest" : "with a commanding scoreboard";
-  const upsetLine = upset.happened ? ` This counts as an upset: ${upset.reason}` : "";
-  const story = `${winnerName} ${winVerb} They defeated ${loserName} ${verdict}. Nobody was harmed; the defeated side was simply knocked out of the fictional match and sent to consequence court.${upsetLine}`;
+  const story = `${winnerName} secured the battlefield after ${model.combat.rounds.length} combat rounds. ${loserName} withdrew. Losses include personnel killed, wounded, captured, or dispersed, and equipment destroyed or abandoned. All losses have been removed from available armies. This is a simplified strategy model, not a historical prediction.`;
 
   document.querySelector("#winnerTitle").textContent = `${winnerName} Wins`;
   document.querySelector("#upsetBadge").classList.toggle("hidden", !upset.happened);
@@ -469,11 +423,14 @@ function renderResults(model) {
   document.querySelector("#scoreBSummary").textContent = `${Math.round(finalB)} final power from ${sideB.members.length} countries. Base strength: ${Math.round(sideB.baseWithSynergy)}.`;
   document.querySelector("#storyText").textContent = story;
 
-  renderRounds(countries.filter(country => country.side), winnerName, loserName, chaos);
-  renderConsequences(loser, winnerName, loserName, closeness, chaos);
+  document.querySelector("#roundLog").replaceChildren(...model.combat.rounds.map(text => {
+    const li = document.createElement("li"); li.textContent = text; return li;
+  }));
+  renderCasualties(model.combat.casualties);
   renderCountryReport(countries, winnerSide);
 
   lastReport = buildTextReport({
+    combat: model.combat,
     countries,
     sideAName,
     sideBName,
@@ -490,58 +447,18 @@ function renderResults(model) {
   results.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function renderRounds(countries, winnerName, loserName, chaos) {
-  const roundLog = document.querySelector("#roundLog");
-  roundLog.innerHTML = "";
-  const rounds = Math.min(9, 5 + chaos);
-  for (let i = 0; i < rounds; i += 1) {
-    const country = pick(countries);
-    const sideName = country.side === "A"
-      ? document.querySelector("#sideAName").selectedOptions[0].textContent
-      : document.querySelector("#sideBName").selectedOptions[0].textContent;
-    const text = pick(roundOpeners)
-      .replace("{country}", country.name)
-      .replace("{side}", sideName)
-      .replace("{unit}", getUnitHighlight(country));
-    const item = document.createElement("li");
-    item.textContent = i === rounds - 1
-      ? `${winnerName} sealed the match while ${loserName} requested a very official re-count of the snack tokens.`
-      : text;
-    roundLog.appendChild(item);
-  }
-}
-
-function renderConsequences(loser, winnerName, loserName, closeness, chaos) {
+function renderCasualties(records) {
   const list = document.querySelector("#consequenceList");
-  list.innerHTML = "";
-  const maxSeverity = closeness < 0.06 ? 2 : closeness < 0.18 ? 3 : chaos >= 4 ? 5 : 4;
-  const chosen = [];
-
-  loser.members.forEach((country, index) => {
-    const severityRoll = Math.min(maxSeverity, 1 + Math.floor(Math.random() * maxSeverity));
-    const filtered = consequenceBank.filter((item) => severityScore(item.rank) <= severityRoll + 1);
-    const consequence = pick(filtered);
-    chosen.push({
-      country: country.name,
-      consequence,
-      text: `${country.name} from ${loserName}: ${consequence.text}`
-    });
-  });
-
-  if (chosen.length < 3) {
-    chosen.push({
-      country: winnerName,
-      consequence: { rank: "Victory paperwork", className: "knockout" },
-      text: `${winnerName}: Must write a humble victory speech that uses the word "sportsmanship" twice.`
-    });
-  }
-
-  chosen.forEach((entry) => {
+  list.replaceChildren(...records.map(record => {
     const div = document.createElement("div");
-    div.className = `consequence-item ${entry.consequence.className}`;
-    div.innerHTML = `<strong>${entry.consequence.rank}</strong><span>${escapeHtml(entry.text)}</span>`;
-    list.appendChild(div);
-  });
+    div.className = "consequence-item";
+    const title = document.createElement("strong");
+    title.textContent = `${record.name}${record.side ? "" : " — neutral"}`;
+    const details = document.createElement("div");
+    details.className = "loss-table";
+    details.innerHTML = `<table><thead><tr><th>Unit</th><th>Before</th><th>Lost</th><th>Left</th></tr></thead><tbody>${record.units.map(unit => `<tr><th>${unit.label}</th><td>${unit.before}</td><td>${unit.lost}</td><td>${unit.remaining}</td></tr>`).join("")}</tbody></table>`;
+    div.append(title, details); return div;
+  }));
 }
 
 function renderCountryReport(countries, winnerSide) {
@@ -559,7 +476,7 @@ function renderCountryReport(countries, winnerSide) {
       div.className = "country-result";
       div.innerHTML = `
         <strong>${escapeHtml(country.name)}</strong>
-        <span>${result}. Power: ${Math.round(country.power)}. Best unit: ${escapeHtml(bestUnitName(country))}. ${country.hasHeraldry ? "Heraldry morale bonus active." : "No heraldry bonus yet."}</span>
+        <span>${result}. Starting power: ${Math.round(country.power)}. Best unit: ${escapeHtml(bestUnitName(country))}. ${country.hasHeraldry ? "Heraldry morale bonus active." : "No heraldry bonus yet."}</span>
       `;
       report.appendChild(div);
     });
@@ -567,10 +484,10 @@ function renderCountryReport(countries, winnerSide) {
 
 function buildTextReport(data) {
   const countryLines = data.countries.map((country) => (
-    `- ${country.name}: ${!country.side ? "Neutral" : country.side === "A" ? data.sideAName : data.sideBName}, gold ${country.gold}, basketball cannons ${country.cannons}, book launchers ${country.books}, pen fighters ${country.pens}, screech mages ${country.mages}`
+    `- ${country.name}: ${!country.side ? "Neutral" : country.side === "A" ? data.sideAName : data.sideBName}, gold ${country.gold}, artillery ${country.cannons}, archers ${country.books}, infantry ${country.pens}, cavalry ${country.mages}`
   ));
   return [
-    "Heraldry Battle Simulator Report",
+    "Kingdoms at War Report",
     "",
     `Winner: ${data.winnerName}`,
     `Defeated side: ${data.loserName}`,
@@ -582,27 +499,20 @@ function buildTextReport(data) {
     "Diplomacy responses:",
     ...[...document.querySelectorAll("#allyResponses li")].map(item => item.textContent),
     "",
-    "Countries:",
+    "Casualties (before / lost / remaining):",
+    ...data.combat.casualties.map(record => `${record.name}: ${record.units.map(unit => `${unit.label} ${unit.before}/${unit.lost}/${unit.remaining}`).join("; ")}`),
+    "",
+    "Combat rounds:",
+    ...data.combat.rounds,
+    "",
+    "Countries at battle start:",
     ...countryLines
   ].join("\n");
 }
 
 function bestUnitName(country) {
-  const units = [
-    { name: "basketball cannons", count: country.cannons },
-    { name: "book launchers", count: country.books },
-    { name: "pen fighters", count: country.pens },
-    { name: "screech mages", count: country.mages }
-  ].sort((a, b) => b.count - a.count);
-  return units[0].name;
-}
-
-function severityScore(rank) {
-  if (rank === "Expelled") return 5;
-  if (rank === "Suspension") return 4;
-  if (rank === "After-school detention") return 3;
-  if (rank === "In-school detention") return 2;
-  return 1;
+  if (!armySize(country)) return "None";
+  return [...UNIT_TYPES].sort((a, b) => country[b.key] - country[a.key])[0].label;
 }
 
 function pick(items) {

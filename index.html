@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Heraldry Battle Simulator</title>
-  <meta name="description" content="A classroom-friendly fictional battle simulator for five student-created countries.">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <title>Kingdoms at War</title>
+  <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
+  <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
   <header class="app-header">
     <div>
-      <p class="eyebrow">Classroom treaty desk</p>
-      <h1>Heraldry Battle Simulator</h1>
-      <p class="intro">Upload heraldry, invent five countries, choose two opponents and their allies, and simulate a ridiculous no-killing battle with upsets, knockouts, detentions, suspensions, and dramatic school consequences.</p>
+      <p class="eyebrow">Campaign command</p>
+      <h1>Kingdoms at War</h1>
+      <p class="intro">Create five kingdoms, form alliances and rivalries, and fight battles shaped by terrain, army strength, and betrayal. Survivors carry into the next battle.</p>
     </div>
     <div class="status-card" aria-live="polite">
       <span class="status-label">Mode</span>
-      <strong>No-killing fiction</strong>
-      <span>Everything here is pretend. Countries only get knocked out or receive silly school consequences.</span>
+      <strong>Campaign simulation</strong>
+      <span>Losses reduce available armies after every battle. Refreshing resets this session; download reports to keep your results.</span>
     </div>
   </header>
 
@@ -42,10 +42,11 @@
         </label>
         <label>Hatred join chance (%)<input id="hatredChance" type="number" min="0" max="100" value="60"></label>
         <label>Betrayal chance (%)<input id="betrayalChance" type="number" min="0" max="100" value="40"></label>
+        <label>Battlefield<select id="terrain"><option value="plains">Open plains</option><option value="hills">Defensive hills (+15%)</option><option value="fortifications">Fortifications (+30%)</option></select></label>
         <label>
-          Chaos
+          Battlefield uncertainty
           <input id="chaosLevel" type="range" min="1" max="5" value="3">
-          <span id="chaosText">Balanced</span>
+          <span id="chaosText">Moderate</span>
         </label>
       </div>
     </section>
@@ -74,7 +75,7 @@
     <section id="results" class="results hidden" aria-live="polite">
       <div class="result-topline">
         <div>
-          <p class="eyebrow">Official fictional ruling</p>
+          <p class="eyebrow">Battle outcome</p>
           <h2 id="winnerTitle">Battle Results</h2>
         </div>
         <div id="upsetBadge" class="upset-badge hidden">Upset!</div>
@@ -96,19 +97,19 @@
 
       <div class="result-layout">
         <section class="report-panel" aria-labelledby="story-title">
-          <h3 id="story-title">Battle Story</h3>
+          <h3 id="story-title">After-action report</h3>
           <p id="storyText"></p>
           <ol id="roundLog" class="round-log"></ol>
         </section>
 
         <section class="report-panel" aria-labelledby="consequence-title">
-          <h3 id="consequence-title">Silly Consequences</h3>
+          <h3 id="consequence-title">Casualties & Survivors</h3>
           <div id="consequenceList" class="consequence-list"></div>
         </section>
       </div>
 
       <section class="report-panel country-report-panel" aria-labelledby="country-report-title">
-        <h3 id="country-report-title">Country Scoreboard</h3>
+        <h3 id="country-report-title">Forces at battle start</h3>
         <div id="countryReport" class="country-report"></div>
       </section>
     </section>
@@ -137,25 +138,25 @@
           <input class="country-gold" type="number" min="0" max="999999" step="1" value="100">
         </label>
         <label>
-          Basketball cannons
+          Artillery
           <input class="country-cannons" type="number" min="0" max="9999" step="1" value="5">
         </label>
         <label>
-          Book launchers
+          Archers
           <input class="country-books" type="number" min="0" max="9999" step="1" value="5">
         </label>
         <label>
-          Pen fighters
+          Infantry
           <input class="country-pens" type="number" min="0" max="9999" step="1" value="25">
         </label>
         <label>
-          Screech mages
+          Cavalry
           <input class="country-mages" type="number" min="0" max="9999" step="1" value="3">
         </label>
       </div>
     </article>
   </template>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

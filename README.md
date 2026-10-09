@@ -1,6 +1,6 @@
-# Heraldry Battle Simulator
+# Kingdoms at War
 
-A GitHub Pages-ready classroom simulator. Students create five fictional countries, upload heraldry images, invent resources and silly army units, then run a no-killing fictional battle that produces a winner, an upset chance, and school-themed consequences.
+A fictional strategy simulator with five countries, diplomacy, terrain, combat rounds, and army attrition.
 
 ## Play with your class
 
@@ -9,7 +9,7 @@ Open https://ragingaxolotl-art.github.io/heraldry-battle-simulator/ in a browser
 1. Click **Load Sample** for a quick demonstration, or name all five countries.
 2. Choose the attacking and defending countries from the dropdowns, and enter resources and units.
 3. Optionally upload heraldry images for a morale bonus.
-4. Choose allies and enemies for each country, adjust the help, hatred, betrayal, and chaos settings, then click **Run Battle**.
+4. Choose allies and enemies for each country, adjust the help, hatred, betrayal, and battlefield uncertainty settings, then click **Run Battle**.
 5. Use **Copy Report** or **Download Report** to keep the outcome.
 
 Each browser runs its own simulation; this is not a shared multiplayer session. Refreshing or resetting clears entries. Download the report before leaving. Uploaded images stay in the browser.
@@ -26,10 +26,10 @@ Open `index.html` directly, or run `python3 -m http.server 8000` in this folder 
 - Attacking and defending country selections
 - Ally help, hatred, and betrayal probabilities
 - Gold
-- Basketball cannons
-- Book launchers
-- Pen fighters
-- Screech mages
+- Artillery
+- Archers
+- Infantry
+- Cavalry
 
 ## How to use on GitHub Pages
 
@@ -42,9 +42,13 @@ Open `index.html` directly, or run `python3 -m http.server 8000` in this folder 
 
 The app uses only browser-side JavaScript. Student uploads stay in the browser and are not saved to a server.
 
-## Classroom note
+## Combat and losses
 
-The simulator is intentionally fictional and non-lethal. Results use "knocked out" and pretend school consequences like detention, suspension, and being expelled from the fictional tournament realm.
+Armies use infantry, archers, cavalry, and artillery. Weighted unit strength, combined arms, limited supply support from gold, heraldry morale, and defensive terrain affect combat. Gold alone cannot fight. Each battle resolves up to six rounds with simultaneous losses; a force may withdraw after falling below 45% of its initial strength. The surviving effective strength decides battles that reach the round limit; exact ties favor the defender. Random forced upsets have been removed.
+
+The casualty table and downloadable report show each unit type's starting amount, losses, and survivors. Losses cover personnel unavailable through death, wounds, capture, or dispersal, plus equipment losses. These are abstract game units and estimated outcomes, not historically calibrated predictions.
+
+Army fields are reduced immediately after a battle, including allies and enemies who join. Neutral armies are unchanged. The next battle uses those survivors. Countries with no units cannot be selected to lead another battle. Refreshing resets the session; Load Sample replenishes the example forces. Download reports to retain results.
 
 ## Diplomacy rules
 
