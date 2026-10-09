@@ -34,6 +34,25 @@ const alliances = new Set();
 const enemies = new Set();
 const allianceKey = (a, b) => [Number(a), Number(b)].sort((x, y) => x - y).join("-");
 
+// Flood-fill only near-white pixels connected to the image edge.
+function clearOuterWhite(data, width, height) {
+  const seen = new Uint8Array(width * height), queue = [];
+  function add(p) {
+    if (seen[p]) return;
+    seen[p] = 1;
+    const k = p * 4, low = Math.min(data[k], data[k+1], data[k+2]), high = Math.max(data[k], data[k+1], data[k+2]);
+    if (data[k+3] === 0 || (low >= 235 && high-low <= 20)) queue.push(p);
+  }
+  for(let x=0;x<width;x++){add(x);add((height-1)*width+x);}
+  for(let y=0;y<height;y++){add(y*width);add(y*width+width-1);}
+  for(let i=0;i<queue.length;i++) {
+    const p=queue[i]; data[p*4+3]=0;
+    if(p%width) add(p-1); if(p%width<width-1) add(p+1);
+    if(p>=width) add(p-width); if(p<width*(height-1)) add(p+width);
+  }
+  return data;
+}
+
 function createCountryCards() {
   grid.innerHTML = "";
   for (let i = 0; i < COUNTRY_COUNT; i += 1) {
@@ -42,6 +61,27 @@ function createCountryCards() {
     const imagePreview = card.querySelector(".heraldry-preview");
     const imageDrop = card.querySelector(".heraldry-drop");
 
+    const removeWhite = card.querySelector('.remove-white');
+    const restoreShield = card.querySelector('.restore-shield');
+    removeWhite.addEventListener('click', () => {
+      const img = new Image(); removeWhite.disabled = true;
+      img.onload = () => {
+        const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
+        const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
+        const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+        clearOuterWhite(pixels.data,canvas.width,canvas.height);ctx.putImageData(pixels,0,0);
+        imagePreview.src=canvas.toDataURL('image/png');restoreShield.disabled=false;
+        card.querySelector('.shield-status').textContent='Outside white is transparent. Restore original if any shield detail disappeared.';
+        card.dispatchEvent(new Event('shieldloaded',{bubbles:true}));
+      };
+      img.onerror=()=>{removeWhite.disabled=false;card.querySelector('.shield-status').textContent='Could not process this shield. Try uploading it again.';};
+      img.src=card.dataset.originalShield || imagePreview.src;
+    });
+    restoreShield.addEventListener('click',()=>{
+      imagePreview.src=card.dataset.originalShield;restoreShield.disabled=true;removeWhite.disabled=false;
+      card.querySelector('.shield-status').textContent='Original shield restored.';
+      card.dispatchEvent(new Event('shieldloaded',{bubbles:true}));
+    });
     const nameInput = card.querySelector(".country-name");
 
     nameInput.placeholder = `Country ${i + 1}`;
@@ -69,6 +109,8 @@ function createCountryCards() {
           canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale));
           canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
           imagePreview.src = canvas.toDataURL("image/png");
+          card.dataset.originalShield=imagePreview.src;removeWhite.disabled=false;restoreShield.disabled=true;
+          card.querySelector(".shield-status").textContent="Removes outside white; enclosed white details stay.";
           imageDrop.classList.add("has-image");
           card.dispatchEvent(new Event("shieldloaded", {bubbles:true}));
         };

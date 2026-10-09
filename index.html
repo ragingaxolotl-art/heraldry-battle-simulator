@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
   <header class="app-header">
@@ -165,6 +165,7 @@
         <input class="heraldry-input" type="file" accept="image/*" aria-label="Upload heraldry image">
       </div>
 
+      <div class="shield-tools"><button class="remove-white secondary-button" type="button" disabled>Remove white background</button><button class="restore-shield secondary-button" type="button" disabled>Restore original</button><small class="shield-status" aria-live="polite">Removes outside white; enclosed white details stay.</small></div>
       <div class="country-fields">
         <label class="wide-field">
           Country name
@@ -205,8 +206,8 @@
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=10"></script>
-  <script src="app.js?v=10"></script>
-  <script src="world.js?v=10"></script>
+  <script src="world-core.js?v=11"></script>
+  <script src="app.js?v=11"></script>
+  <script src="world.js?v=11"></script>
 </body>
 </html>

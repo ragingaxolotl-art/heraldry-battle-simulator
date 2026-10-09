@@ -18,6 +18,7 @@ function captureWorld() {
     const country = studentWorld.countries[studentWorld.selected[i]];
     for (const key of ['name','gold','cannons','books','pens','mages']) country[key] = data[key];
     for (const key of ['ruler','exports','currency','sport']) country[key] = cards()[i].querySelector(`.country-${key}`).value;
+    country.originalShield = cards()[i].dataset.originalShield || '';
     country.shield = cards()[i].querySelector('.heraldry-preview').getAttribute('src') || '';
   });
   studentWorld.selected.forEach((id,i) => studentWorld.selected.forEach((other,j) => {
@@ -49,7 +50,7 @@ function applyWorld() {
     card.querySelector('.country-name').value = country.name;
     for (const key of ['gold','cannons','books','pens','mages']) card.querySelector(`.country-${key}`).value = country[key];
     for (const key of ['ruler','exports','currency','sport']) card.querySelector(`.country-${key}`).value=country[key] || '';
-    if (country.shield) { card.querySelector('.heraldry-preview').src=country.shield; card.querySelector('.heraldry-drop').classList.add('has-image'); }
+    if (country.shield) { card.dataset.originalShield=country.originalShield || country.shield; card.querySelector('.remove-white').disabled=false;card.querySelector('.restore-shield').disabled=country.shield===card.dataset.originalShield; card.querySelector('.heraldry-preview').src=country.shield; card.querySelector('.heraldry-drop').classList.add('has-image'); }
     const label=document.createElement('label'); label.className='wide-field'; label.append(document.createTextNode(`Country ${i+1} · Choose land location`));
     const select=document.createElement('select'); select.className='map-country'; select.setAttribute('aria-label',`Land location for country ${i+1}`); label.append(select);
     card.prepend(label);
@@ -230,6 +231,7 @@ function validateWorldSave(data) {
     if(typeof country.shield!=='string'||country.shield.length>1000000||(country.shield&&!/^data:image\/(png|jpeg|webp);base64,/.test(country.shield)))throw Error('Invalid shield image.');
   });
   const generated=generateStudentWorld(data.seed,GRIA_TEMPLATE);
+  generated.countries.forEach((country,i)=>{const original=data.countries[i].originalShield;country.originalShield=typeof original==='string'&&original.length<=1000000&&/^data:image\/(png|jpeg|webp);base64,/.test(original)?original:data.countries[i].shield;});
   generated.countries.forEach((country,i)=>{for(const key of ['name','gold','cannons','books','pens','mages','position','shield'])country[key]=data.countries[i][key];for(const key of ['ruler','exports','currency','sport'])country[key]=typeof data.countries[i][key]==='string'?data.countries[i][key].slice(0,80):'';});
   if(data.background && typeof data.background==='string' && data.background.length<6000000 && /^data:image\/(png|jpeg|webp);base64,/.test(data.background))generated.background=data.background;
   generated.selected=data.selected;generated.relations={};

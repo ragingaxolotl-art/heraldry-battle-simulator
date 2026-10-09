@@ -562,3 +562,7 @@ dialog p { line-height: 1.6; }
 .biome-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .biome-swatch { width: 22px; height: 22px; border: 1px solid #536052; border-radius: 4px; flex-shrink: 0; }
 .biome-legend small { flex-basis: 100%; }
+
+.shield-tools { padding: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.shield-tools button { font-size: .75rem; padding: 8px; }
+.shield-status { display: block; font-size: .75rem; color: #465847; }
