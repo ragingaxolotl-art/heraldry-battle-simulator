@@ -7,9 +7,9 @@ A GitHub Pages-ready classroom simulator. Students create five fictional countri
 Open https://ragingaxolotl-art.github.io/heraldry-battle-simulator/ in a browser. No installation or student account is needed.
 
 1. Click **Load Sample** for a quick demonstration, or name all five countries.
-2. Assign at least one country to each side and enter resources and units.
+2. Choose the attacking and defending countries from the dropdowns, and enter resources and units.
 3. Optionally upload heraldry images for a morale bonus.
-4. Choose the chaos level and click **Run Battle**.
+4. Choose allies and enemies for each country, adjust the help, hatred, betrayal, and chaos settings, then click **Run Battle**.
 5. Use **Copy Report** or **Download Report** to keep the outcome.
 
 Each browser runs its own simulation; this is not a shared multiplayer session. Refreshing or resetting clears entries. Download the report before leaving. Uploaded images stay in the browser.
@@ -22,7 +22,9 @@ Open `index.html` directly, or run `python3 -m http.server 8000` in this folder 
 
 - Country name
 - Heraldry image upload
-- Side A or Side B
+- Mutual allies and enemies
+- Attacking and defending country selections
+- Ally help, hatred, and betrayal probabilities
 - Gold
 - Basketball cannons
 - Book launchers
@@ -43,3 +45,11 @@ The app uses only browser-side JavaScript. Student uploads stay in the browser a
 ## Classroom note
 
 The simulator is intentionally fictional and non-lethal. Results use "knocked out" and pretend school consequences like detention, suspension, and being expelled from the fictional tournament realm.
+
+## Diplomacy rules
+
+Allies and enemies are mutual and mutually exclusive. The two selected opponents always fight on their original sides. Other countries first roll to help a direct ally (60% by default); allies shared by both opponents initially stay neutral. Next, countries may join against participating enemies (60% by default). If enemies are on both sides, hatred leaves their position unchanged. Finally, a country whose ally fights alongside its enemy may turn against that ally (40% by default). Conflicting betrayal triggers on both sides leave its position unchanged. Each stage uses a fixed snapshot so country ordering cannot affect decisions. There is one betrayal round, with no endless chain of switches.
+
+All probabilities can be set from 0% to 100%. Only participating countries contribute power or receive defeat consequences. The diplomacy log explains each decision and is included in the report. Relationships are not permanently changed by a battle.
+
+Run diplomacy tests with `node tests/alliances.cjs`.

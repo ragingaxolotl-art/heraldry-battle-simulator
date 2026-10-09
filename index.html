@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Heraldry Battle Simulator</title>
   <meta name="description" content="A classroom-friendly fictional battle simulator for five student-created countries.">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
   <header class="app-header">
     <div>
       <p class="eyebrow">Classroom treaty desk</p>
       <h1>Heraldry Battle Simulator</h1>
-      <p class="intro">Upload heraldry, invent five countries, divide them into two sides, and simulate a ridiculous no-killing battle with upsets, knockouts, detentions, suspensions, and dramatic school consequences.</p>
+      <p class="intro">Upload heraldry, invent five countries, choose two opponents and their allies, and simulate a ridiculous no-killing battle with upsets, knockouts, detentions, suspensions, and dramatic school consequences.</p>
     </div>
     <div class="status-card" aria-live="polite">
       <span class="status-label">Mode</span>
@@ -25,17 +25,23 @@
     <section class="setup-bar" aria-labelledby="battle-settings-title">
       <div>
         <h2 id="battle-settings-title">Battle Settings</h2>
-        <p>Name the two sides, then fill in all five country ledgers.</p>
+        <p>Choose two countries to battle. Their allies may answer the call.</p>
       </div>
       <div class="settings-grid">
         <label>
-          Side A
-          <input id="sideAName" type="text" value="Blue Banner League" maxlength="34">
+          Attacking country
+          <select id="sideAName"></select>
         </label>
         <label>
-          Side B
-          <input id="sideBName" type="text" value="Crimson Chalk Union" maxlength="34">
+          Defending country
+          <select id="sideBName"></select>
         </label>
+        <label>
+          Ally help chance (%)
+          <input id="allyChance" type="number" min="0" max="100" value="60">
+        </label>
+        <label>Hatred join chance (%)<input id="hatredChance" type="number" min="0" max="100" value="60"></label>
+        <label>Betrayal chance (%)<input id="betrayalChance" type="number" min="0" max="100" value="40"></label>
         <label>
           Chaos
           <input id="chaosLevel" type="range" min="1" max="5" value="3">
@@ -48,7 +54,7 @@
       <div class="section-heading">
         <div>
           <h2 id="countries-title">Five Countries</h2>
-          <p>Each country needs a name, heraldry image, side, gold, and unit counts.</p>
+          <p>Name all five countries, set their resources, and choose allies. Allies and enemies are mutual. A country cannot be both. Hatred and betrayal may change who joins each side.</p>
         </div>
         <div class="action-row">
           <button id="sampleButton" type="button" class="secondary-button">Load Sample</button>
@@ -74,6 +80,7 @@
         <div id="upsetBadge" class="upset-badge hidden">Upset!</div>
       </div>
 
+      <section class="report-panel"><h3>Diplomacy responses</h3><p>Allies roll to help first. Hatred may then draw countries against enemies. Finally, allies who help an enemy may provoke a betrayal. Each stage rolls independently; the two chosen opponents never switch. These decisions apply only to this battle.</p><ul id="allyResponses"></ul></section>
       <div class="score-grid">
         <article class="score-panel">
           <h3 id="scoreATitle">Side A</h3>
@@ -123,13 +130,8 @@
           Country name
           <input class="country-name" type="text" maxlength="38" placeholder="Country name">
         </label>
-        <label>
-          Side
-          <select class="country-side">
-            <option value="A">Side A</option>
-            <option value="B">Side B</option>
-          </select>
-        </label>
+        <fieldset class="wide-field allies"><legend>Allies</legend><div class="ally-options"></div></fieldset>
+        <fieldset class="wide-field allies"><legend>Enemies</legend><div class="enemy-options"></div></fieldset>
         <label>
           Gold
           <input class="country-gold" type="number" min="0" max="999999" step="1" value="100">
@@ -154,6 +156,6 @@
     </article>
   </template>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

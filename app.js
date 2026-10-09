@@ -85,6 +85,9 @@ const formMessage = document.querySelector("#formMessage");
 const results = document.querySelector("#results");
 
 let lastReport = "";
+const alliances = new Set();
+const enemies = new Set();
+const allianceKey = (a, b) => [Number(a), Number(b)].sort((x, y) => x - y).join("-");
 
 function createCountryCards() {
   grid.innerHTML = "";
@@ -93,11 +96,11 @@ function createCountryCards() {
     const imageInput = card.querySelector(".heraldry-input");
     const imagePreview = card.querySelector(".heraldry-preview");
     const imageDrop = card.querySelector(".heraldry-drop");
-    const sideSelect = card.querySelector(".country-side");
+
     const nameInput = card.querySelector(".country-name");
 
     nameInput.placeholder = `Country ${i + 1}`;
-    sideSelect.value = i % 2 === 0 ? "A" : "B";
+    nameInput.addEventListener("input", refreshCountryChoices);
 
     imageInput.addEventListener("change", () => {
       const file = imageInput.files && imageInput.files[0];
@@ -117,6 +120,40 @@ function createCountryCards() {
 
     grid.appendChild(card);
   }
+  refreshCountryChoices();
+}
+
+function refreshCountryChoices() {
+  const cards = [...grid.querySelectorAll(".country-card")];
+  const names = cards.map((card, i) => card.querySelector(".country-name").value.trim() || `Country ${i + 1}`);
+  ["sideAName", "sideBName"].forEach((id, position) => {
+    const select = document.getElementById(id);
+    const previous = select.value;
+    select.replaceChildren(...names.map((name, i) => new Option(name, String(i))));
+    select.value = previous || String(position);
+  });
+  cards.forEach((card, i) => {
+    [[".ally-options", alliances, enemies, "Ally"], [".enemy-options", enemies, alliances, "Enemy"]].forEach(([selector, relationships, opposite, kind]) => {
+      const options = card.querySelector(selector);
+      options.replaceChildren();
+      names.forEach((name, j) => {
+        if (i === j) return;
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.setAttribute("aria-label", `${kind}: ${name}`);
+        checkbox.checked = relationships.has(allianceKey(i, j));
+        checkbox.addEventListener("change", () => {
+          const key = allianceKey(i, j);
+          if (checkbox.checked) { relationships.add(key); opposite.delete(key); }
+          else relationships.delete(key);
+          refreshCountryChoices();
+        });
+        label.append(checkbox, document.createTextNode(name));
+        options.append(label);
+      });
+    });
+  });
 }
 
 function numberValue(card, selector) {
@@ -130,7 +167,7 @@ function getCountries() {
   return [...document.querySelectorAll(".country-card")].map((card, index) => ({
     index,
     name: card.querySelector(".country-name").value.trim(),
-    side: card.querySelector(".country-side").value,
+    side: null,
     gold: numberValue(card, ".country-gold"),
     cannons: numberValue(card, ".country-cannons"),
     books: numberValue(card, ".country-books"),
@@ -145,19 +182,31 @@ function setSample() {
   sampleCountries.forEach((country, index) => {
     const card = cards[index];
     card.querySelector(".country-name").value = country.name;
-    card.querySelector(".country-side").value = country.side;
+
     card.querySelector(".country-gold").value = country.gold;
     card.querySelector(".country-cannons").value = country.cannons;
     card.querySelector(".country-books").value = country.books;
     card.querySelector(".country-pens").value = country.pens;
     card.querySelector(".country-mages").value = country.mages;
   });
-  formMessage.textContent = "Sample countries loaded. Add heraldry images if you want the morale bonus.";
+  alliances.clear();
+  enemies.clear();
+  ["0-2", "0-4", "1-3"].forEach(key => alliances.add(key));
+  ["0-3", "2-4"].forEach(key => enemies.add(key));
+  refreshCountryChoices();
+  document.querySelector("#sideAName").value = "0";
+  document.querySelector("#sideBName").value = "1";
+  formMessage.textContent = "Sample countries and alliances loaded. Allies each have a chance to help.";
 }
 
 function resetForm() {
-  document.querySelector("#sideAName").value = "Blue Banner League";
-  document.querySelector("#sideBName").value = "Crimson Chalk Union";
+  alliances.clear();
+  enemies.clear();
+  document.querySelector("#sideAName").value = "0";
+  document.querySelector("#sideBName").value = "1";
+  document.querySelector("#allyChance").value = "60";
+  document.querySelector("#hatredChance").value = "60";
+  document.querySelector("#betrayalChance").value = "40";
   chaosLevel.value = "3";
   chaosText.textContent = chaosLabels[3];
   createCountryCards();
@@ -172,10 +221,8 @@ function validate(countries) {
   if (countries.some((country) => !country.name)) {
     return "Name all five countries before starting the battle.";
   }
-  const sideA = countries.filter((country) => country.side === "A");
-  const sideB = countries.filter((country) => country.side === "B");
-  if (!sideA.length || !sideB.length) {
-    return "Both sides need at least one country.";
+  if (document.querySelector("#sideAName").value === document.querySelector("#sideBName").value) {
+    return "Choose two different countries to battle.";
   }
   return "";
 }
@@ -246,6 +293,79 @@ function maybeUpset(sideA, sideB, finalA, finalB, chaos) {
   return { happened: false, winner: finalWinner, reason: "" };
 }
 
+function resolveAllies(countries, attacker, defender, chance, random = Math.random, hatred = 60, betrayal = 40) {
+  const responses = [];
+  countries.forEach(country => {
+    country.side = country.index === attacker ? "A" : country.index === defender ? "B" : null;
+    if (country.side) return;
+    const alliedA = alliances.has(allianceKey(country.index, attacker));
+    const alliedB = alliances.has(allianceKey(country.index, defender));
+    if (alliedA && alliedB) {
+      responses.push(`${country.name} stayed neutral: allied with both opponents.`);
+    } else if (alliedA || alliedB) {
+      const leader = countries[alliedA ? attacker : defender].name;
+      if (random() < chance / 100) {
+        country.side = alliedA ? "A" : "B";
+        responses.push(`${country.name} joined ${leader} (${chance}% help chance).`);
+      } else {
+        responses.push(`${country.name} did not answer ${leader}'s call (${chance}% help chance).`);
+      }
+    } else {
+      responses.push(`${country.name} stayed neutral: no alliance with either opponent.`);
+    }
+  });
+  // Hatred decisions use a fixed snapshot so card order cannot change the outcome.
+  const initialSides = countries.map(country => country.side);
+  countries.forEach(country => {
+    if (country.index === attacker || country.index === defender) return;
+    const foes = countries.filter(other => initialSides[other.index] && enemies.has(allianceKey(country.index, other.index)));
+    const foeSides = new Set(foes.map(other => initialSides[other.index]));
+    if (foeSides.size === 1) {
+      const enemySide = [...foeSides][0];
+      const target = enemySide === "A" ? "B" : "A";
+      if (country.side === target) {
+        responses.push(`${country.name} is already fighting against its enemy ${foes.map(foe => foe.name).join(", ")}.`);
+      } else if (random() < hatred / 100) {
+        country.side = target;
+        responses.push(`${country.name} joined ${countries[target === "A" ? attacker : defender].name} out of hatred for ${foes.map(foe => foe.name).join(", ")} (${hatred}% chance).`);
+      } else {
+        responses.push(`${country.name} resisted joining against its enemies (${hatred}% hatred chance).`);
+      }
+    } else if (foeSides.size > 1) {
+      responses.push(`${country.name} has enemies on both sides; hatred did not change its allegiance.`);
+    }
+  });
+  // One simultaneous betrayal round; the two selected opponents always stay put.
+  const beforeBetrayal = countries.map(country => country.side);
+  countries.forEach(country => {
+    if (country.index === attacker || country.index === defender) return;
+    const incidents = [];
+    countries.forEach(ally => {
+      const side = beforeBetrayal[ally.index];
+      if (!side || !alliances.has(allianceKey(country.index, ally.index))) return;
+      const foe = countries.find(other => beforeBetrayal[other.index] === side && enemies.has(allianceKey(country.index, other.index)));
+      if (foe) incidents.push({ally, foe, side});
+    });
+    if (!incidents.length) return;
+    const sides = new Set(incidents.map(incident => incident.side));
+    if (sides.size > 1) {
+      responses.push(`${country.name} found conflicting betrayals on both sides and kept its current position.`);
+      return;
+    }
+    const {ally, foe, side} = incidents[0];
+    const target = side === "A" ? "B" : "A";
+    if (country.side === target) {
+      responses.push(`${country.name} is already opposing ally ${ally.name}, who sided with enemy ${foe.name}.`);
+    } else if (random() < betrayal / 100) {
+      country.side = target;
+      responses.push(`${country.name} turned against ally ${ally.name} for helping enemy ${foe.name}, joining ${countries[target === "A" ? attacker : defender].name} (${betrayal}% betrayal chance).`);
+    } else {
+      responses.push(`${country.name} did not turn against ally ${ally.name} despite its support for enemy ${foe.name} (${betrayal}% betrayal chance).`);
+    }
+  });
+  return responses;
+}
+
 function runBattle() {
   const countries = getCountries();
   const error = validate(countries);
@@ -259,8 +379,18 @@ function runBattle() {
   }
 
   formMessage.textContent = "";
-  const sideAName = document.querySelector("#sideAName").value.trim() || "Side A";
-  const sideBName = document.querySelector("#sideBName").value.trim() || "Side B";
+  const attacker = Number(document.querySelector("#sideAName").value);
+  const defender = Number(document.querySelector("#sideBName").value);
+  const sideAName = countries[attacker].name;
+  const sideBName = countries[defender].name;
+  const chance = Math.max(0, Math.min(100, Number(document.querySelector("#allyChance").value) || 0));
+  const percentage = id => Math.max(0, Math.min(100, Number(document.getElementById(id).value) || 0));
+  const responses = resolveAllies(countries, attacker, defender, chance, Math.random, percentage("hatredChance"), percentage("betrayalChance"));
+  document.querySelector("#allyResponses").replaceChildren(...responses.map(text => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    return item;
+  }));
   const chaos = Number(chaosLevel.value);
   const sideA = scoreSide(countries, "A");
   const sideB = scoreSide(countries, "B");
@@ -339,7 +469,7 @@ function renderResults(model) {
   document.querySelector("#scoreBSummary").textContent = `${Math.round(finalB)} final power from ${sideB.members.length} countries. Base strength: ${Math.round(sideB.baseWithSynergy)}.`;
   document.querySelector("#storyText").textContent = story;
 
-  renderRounds(countries, winnerName, loserName, chaos);
+  renderRounds(countries.filter(country => country.side), winnerName, loserName, chaos);
   renderConsequences(loser, winnerName, loserName, closeness, chaos);
   renderCountryReport(countries, winnerSide);
 
@@ -367,8 +497,8 @@ function renderRounds(countries, winnerName, loserName, chaos) {
   for (let i = 0; i < rounds; i += 1) {
     const country = pick(countries);
     const sideName = country.side === "A"
-      ? document.querySelector("#sideAName").value.trim() || "Side A"
-      : document.querySelector("#sideBName").value.trim() || "Side B";
+      ? document.querySelector("#sideAName").selectedOptions[0].textContent
+      : document.querySelector("#sideBName").selectedOptions[0].textContent;
     const text = pick(roundOpeners)
       .replace("{country}", country.name)
       .replace("{side}", sideName)
@@ -424,7 +554,7 @@ function renderCountryReport(countries, winnerSide) {
     }))
     .sort((a, b) => b.power - a.power)
     .forEach((country) => {
-      const result = country.side === winnerSide ? "Winning side" : "Defeated side";
+      const result = !country.side ? "Neutral — did not participate" : country.side === winnerSide ? "Winning side" : "Defeated side";
       const div = document.createElement("div");
       div.className = "country-result";
       div.innerHTML = `
@@ -437,7 +567,7 @@ function renderCountryReport(countries, winnerSide) {
 
 function buildTextReport(data) {
   const countryLines = data.countries.map((country) => (
-    `- ${country.name}: ${country.side === "A" ? data.sideAName : data.sideBName}, gold ${country.gold}, basketball cannons ${country.cannons}, book launchers ${country.books}, pen fighters ${country.pens}, screech mages ${country.mages}`
+    `- ${country.name}: ${!country.side ? "Neutral" : country.side === "A" ? data.sideAName : data.sideBName}, gold ${country.gold}, basketball cannons ${country.cannons}, book launchers ${country.books}, pen fighters ${country.pens}, screech mages ${country.mages}`
   ));
   return [
     "Heraldry Battle Simulator Report",
@@ -448,6 +578,9 @@ function buildTextReport(data) {
     data.upset.happened ? `Upset: Yes. ${data.upset.reason}` : "Upset: No",
     "",
     data.story,
+    "",
+    "Diplomacy responses:",
+    ...[...document.querySelectorAll("#allyResponses li")].map(item => item.textContent),
     "",
     "Countries:",
     ...countryLines
