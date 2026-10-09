@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Heraldry Battle Simulator</title>
+  <meta name="description" content="A classroom-friendly fictional battle simulator for five student-created countries.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Classroom treaty desk</p>
+      <h1>Heraldry Battle Simulator</h1>
+      <p class="intro">Upload heraldry, invent five countries, divide them into two sides, and simulate a ridiculous no-killing battle with upsets, knockouts, detentions, suspensions, and dramatic school consequences.</p>
+    </div>
+    <div class="status-card" aria-live="polite">
+      <span class="status-label">Mode</span>
+      <strong>No-killing fiction</strong>
+      <span>Everything here is pretend. Countries only get knocked out or receive silly school consequences.</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="setup-bar" aria-labelledby="battle-settings-title">
+      <div>
+        <h2 id="battle-settings-title">Battle Settings</h2>
+        <p>Name the two sides, then fill in all five country ledgers.</p>
+      </div>
+      <div class="settings-grid">
+        <label>
+          Side A
+          <input id="sideAName" type="text" value="Blue Banner League" maxlength="34">
+        </label>
+        <label>
+          Side B
+          <input id="sideBName" type="text" value="Crimson Chalk Union" maxlength="34">
+        </label>
+        <label>
+          Chaos
+          <input id="chaosLevel" type="range" min="1" max="5" value="3">
+          <span id="chaosText">Balanced</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="country-section" aria-labelledby="countries-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="countries-title">Five Countries</h2>
+          <p>Each country needs a name, heraldry image, side, gold, and unit counts.</p>
+        </div>
+        <div class="action-row">
+          <button id="sampleButton" type="button" class="secondary-button">Load Sample</button>
+          <button id="resetButton" type="button" class="secondary-button">Reset</button>
+        </div>
+      </div>
+      <div id="countryGrid" class="country-grid"></div>
+    </section>
+
+    <section class="battle-controls" aria-label="Run the battle">
+      <button id="battleButton" type="button" class="primary-button">Run Battle</button>
+      <button id="copyButton" type="button" class="secondary-button" disabled>Copy Report</button>
+      <button id="downloadButton" type="button" class="secondary-button" disabled>Download Report</button>
+      <p id="formMessage" class="form-message" role="status"></p>
+    </section>
+
+    <section id="results" class="results hidden" aria-live="polite">
+      <div class="result-topline">
+        <div>
+          <p class="eyebrow">Official fictional ruling</p>
+          <h2 id="winnerTitle">Battle Results</h2>
+        </div>
+        <div id="upsetBadge" class="upset-badge hidden">Upset!</div>
+      </div>
+
+      <div class="score-grid">
+        <article class="score-panel">
+          <h3 id="scoreATitle">Side A</h3>
+          <div class="score-meter" aria-hidden="true"><span id="scoreABar"></span></div>
+          <p id="scoreASummary"></p>
+        </article>
+        <article class="score-panel">
+          <h3 id="scoreBTitle">Side B</h3>
+          <div class="score-meter" aria-hidden="true"><span id="scoreBBar"></span></div>
+          <p id="scoreBSummary"></p>
+        </article>
+      </div>
+
+      <div class="result-layout">
+        <section class="report-panel" aria-labelledby="story-title">
+          <h3 id="story-title">Battle Story</h3>
+          <p id="storyText"></p>
+          <ol id="roundLog" class="round-log"></ol>
+        </section>
+
+        <section class="report-panel" aria-labelledby="consequence-title">
+          <h3 id="consequence-title">Silly Consequences</h3>
+          <div id="consequenceList" class="consequence-list"></div>
+        </section>
+      </div>
+
+      <section class="report-panel country-report-panel" aria-labelledby="country-report-title">
+        <h3 id="country-report-title">Country Scoreboard</h3>
+        <div id="countryReport" class="country-report"></div>
+      </section>
+    </section>
+  </main>
+
+  <template id="countryTemplate">
+    <article class="country-card">
+      <div class="heraldry-drop">
+        <img alt="" class="heraldry-preview">
+        <div class="heraldry-placeholder">
+          <span>Heraldry</span>
+          <small>Upload image</small>
+        </div>
+        <input class="heraldry-input" type="file" accept="image/*" aria-label="Upload heraldry image">
+      </div>
+
+      <div class="country-fields">
+        <label class="wide-field">
+          Country name
+          <input class="country-name" type="text" maxlength="38" placeholder="Country name">
+        </label>
+        <label>
+          Side
+          <select class="country-side">
+            <option value="A">Side A</option>
+            <option value="B">Side B</option>
+          </select>
+        </label>
+        <label>
+          Gold
+          <input class="country-gold" type="number" min="0" max="999999" step="1" value="100">
+        </label>
+        <label>
+          Basketball cannons
+          <input class="country-cannons" type="number" min="0" max="9999" step="1" value="5">
+        </label>
+        <label>
+          Book launchers
+          <input class="country-books" type="number" min="0" max="9999" step="1" value="5">
+        </label>
+        <label>
+          Pen fighters
+          <input class="country-pens" type="number" min="0" max="9999" step="1" value="25">
+        </label>
+        <label>
+          Screech mages
+          <input class="country-mages" type="number" min="0" max="9999" step="1" value="3">
+        </label>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
