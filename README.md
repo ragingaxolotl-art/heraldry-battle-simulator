@@ -1,59 +1,49 @@
 # Kingdoms at War
 
-A fictional strategy simulator with five countries, diplomacy, terrain, combat rounds, and army attrition.
+A browser-based world-building companion for a Google Docs classroom assignment.
 
-## Play with your class
+[Open the simulator](https://ragingaxolotl-art.github.io/heraldry-battle-simulator/).
 
-Open https://ragingaxolotl-art.github.io/heraldry-battle-simulator/ in a browser. No installation or student account is needed.
+## Student workflow
 
-1. Click **Load Sample** for a quick demonstration, or name all five countries.
-2. Choose the attacking and defending countries from the dropdowns, and enter resources and units.
-3. Optionally upload heraldry images for a morale bonus.
-4. Choose allies and enemies for each country, adjust the help, hatred, betrayal, and battlefield uncertainty settings, then click **Run Battle**.
-5. Use **Copy Report** or **Download Report** to keep the outcome.
+1. Upload your own biome-view PNG with **Upload Map PNG**, or use **Reroll World** for a simplified biome map with fifteen named countries.
+2. **Download Clean PNG** exports a 2400 × 1400 map with country names, but no shields or battle arrows. Insert that image into Google Docs and practice headings, image wrapping, and shield placement there.
+3. Choose five different generated map countries, or name five countries on your uploaded map. Add a ruler, exports, currency, and sport. Names, gold, and army counts are editable. Starting economies, military compositions, and diplomacy are adapted from the teacher's Gria export with seeded variation.
+4. Upload a shield image for each country. Drag shields on the map or focus them and use arrow keys. Moving a shield does not transfer territory.
+5. Select the two opponents, adjust battle settings, and click **Resolve One Battle**. Losses are deducted once from participating armies.
+6. Use **Next Event** or **Replay** to move from the overview into close-up battle rounds and back to the outcome. Each scene shows arrows, shields, narrative, and loss facts. **Download This Battle Picture** saves the current view.
+7. In Google Docs, add headings, insert pictures, write captions, and build your own tables from the facts. The site has no finished casualty table or table-copy/export feature. Narrative text can be copied.
 
-Each browser runs its own simulation; this is not a shared multiplayer session. Refreshing or resetting clears entries. Download the report before leaving. Uploaded images stay in the browser.
+The map generator is a simplified, original classroom generator. It produces new geography and names, using D3 Voronoi geometry. It does not embed the full Azgaar application or reconstruct the original Gria artwork. Starting land forces exclude fleets, which are not modeled in combat.
 
-## Run locally
+## Saving and privacy
 
-Open `index.html` directly, or run `python3 -m http.server 8000` in this folder and visit `http://localhost:8000`. There are no build dependencies. If clipboard access is unavailable, use **Download Report**.
+Worlds, choices, names, shields, army counts, relationships, settings, and the most recent twenty battle notebooks save in local browser storage. Refreshing restores them when storage is available. Uploaded maps and shields are resized locally and never sent to a server. Each browser profile has one current world; there are no student accounts or shared multiplayer sessions.
 
-## What students can enter
+Use **Download My Progress** to keep a JSON backup or move to another computer. **Open My Progress** restores that backup. Reroll and restore ask before replacing current work. On shared computers, students should save their own progress file and reopen it rather than assume the browser belongs to them. Private browsing, cleared storage, or storage limits can prevent local saving; the UI reports failures.
 
-- Country name
-- Heraldry image upload
-- Mutual allies and enemies
-- Attacking and defending country selections
-- Ally help, hatred, and betrayal probabilities
-- Gold
-- Artillery
-- Archers
-- Infantry
-- Cavalry
+Map uploads accept PNG, JPEG, or WebP up to 30 MB and resize to at most 2000 pixels. PNGs provide only a visual background; names, borders, biomes, and routes are not automatically interpreted.
 
-## How to use on GitHub Pages
+Shield uploads accept browser-readable images up to 8 MB and resize them to at most 256 pixels. Backups accept only this site's save format; the full Azgaar JSON is not a student progress file.
 
-1. Create a new GitHub repository.
-2. Upload `index.html`, `styles.css`, `app.js`, `.nojekyll`, and this `README.md` to the repository root.
-3. In GitHub, open **Settings -> Pages**.
-4. Set the source to **Deploy from a branch**.
-5. Choose the `main` branch and `/root`.
-6. Save. GitHub will give you a Pages URL after it deploys.
+## Combat and diplomacy
 
-The app uses only browser-side JavaScript. Student uploads stay in the browser and are not saved to a server.
+Infantry, archers, cavalry, and artillery contribute weighted strength. Combined arms, limited supply support from gold, heraldry morale, and defensive terrain affect combat. Gold alone cannot fight. Battles resolve up to six rounds with simultaneous losses. A force may withdraw below 45% of its initial strength. Surviving effective strength decides battles reaching the round limit; ties favor the defender.
 
-## Combat and losses
+Allies first roll to help. Hatred may draw countries against enemies, then an ally supporting an enemy may provoke betrayal. Each stage uses a fixed snapshot; chosen opponents never switch. Chances range from 0% to 100%. Neutral armies take no losses.
 
-Armies use infantry, archers, cavalry, and artillery. Weighted unit strength, combined arms, limited supply support from gold, heraldry morale, and defensive terrain affect combat. Gold alone cannot fight. Each battle resolves up to six rounds with simultaneous losses; a force may withdraw after falling below 45% of its initial strength. The surviving effective strength decides battles that reach the round limit; exact ties favor the defender. Random forced upsets have been removed.
+Loss fact cards report starting counts, losses, and survivors. Losses include personnel unavailable through death, wounds, capture, or dispersal, and equipment destroyed or abandoned. These are game estimates, not historically calibrated predictions.
 
-The casualty table and downloadable report show each unit type's starting amount, losses, and survivors. Losses cover personnel unavailable through death, wounds, capture, or dispersal, plus equipment losses. These are abstract game units and estimated outcomes, not historically calibrated predictions.
+Map arrows follow the same participating sides and outcomes as the battle event list. They depict schematic advance, reinforcement, and withdrawal, not pathfinding or calculated travel times. Student-chosen battlefield terrain affects combat; background map colors do not automatically change those settings. Replay never simulates another battle or deducts troops again.
 
-Army fields are reduced immediately after a battle, including allies and enemies who join. Neutral armies are unchanged. The next battle uses those survivors. Countries with no units cannot be selected to lead another battle. Refreshing resets the session; Load Sample replenishes the example forces. Download reports to retain results.
+## Attribution
 
-## Diplomacy rules
+Economy, troop composition, and initial diplomacy templates come from the teacher-provided **Gria** world exported from [Azgaar's Fantasy Map Generator](https://github.com/Azgaar/Fantasy-Map-Generator), version 1.154.0. Attribution appears on the page and the clean PNG. The included [Azgaar MIT license](vendor/Azgaar-LICENSE.txt) covers generated map derivatives.
 
-Allies and enemies are mutual and mutually exclusive. The two selected opponents always fight on their original sides. Other countries first roll to help a direct ally (60% by default); allies shared by both opponents initially stay neutral. Next, countries may join against participating enemies (60% by default). If enemies are on both sides, hatred leaves their position unchanged. Finally, a country whose ally fights alongside its enemy may turn against that ally (40% by default). Conflicting betrayal triggers on both sides leave its position unchanged. Each stage uses a fixed snapshot so country ordering cannot affect decisions. There is one betrayal round, with no endless chain of switches.
+The vendored [D3 Delaunay](https://github.com/d3/d3-delaunay) 6.0.4 bundle is used for geometry under its [ISC license](vendor/d3-delaunay-LICENSE.txt). Its bundled dependencies retain the [Delaunator license](vendor/delaunator-LICENSE.txt) and [robust-predicates license](vendor/robust-predicates-LICENSE.txt).
 
-All probabilities can be set from 0% to 100%. Only participating countries contribute power or receive defeat consequences. The diplomacy log explains each decision and is included in the report. Relationships are not permanently changed by a battle.
+## Development
 
-Run diplomacy tests with `node tests/alliances.cjs`.
+No build step or external runtime requests are required. Serve this folder with `python3 -m http.server 8000`, then open `http://localhost:8000`. GitHub Pages deploys the `main` branch at the repository root.
+
+Run `node tests/alliances.cjs` for diplomacy and combat checks and `node tests/world.cjs` for generation, save validation, and clean-map rendering checks.

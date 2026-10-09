@@ -55,10 +55,25 @@ function createCountryCards() {
         return;
       }
 
+      if (!file.type.startsWith("image/") || file.size > 8 * 1024 * 1024) {
+        formMessage.textContent = "Choose a shield image smaller than 8 MB.";
+        imageInput.value = "";
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
-        imagePreview.src = reader.result;
-        imageDrop.classList.add("has-image");
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const scale = Math.min(1, 256 / Math.max(img.width, img.height));
+          canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale));
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          imagePreview.src = canvas.toDataURL("image/png");
+          imageDrop.classList.add("has-image");
+          card.dispatchEvent(new Event("shieldloaded", {bubbles:true}));
+        };
+        img.onerror = () => { formMessage.textContent = "That image could not be opened. Try a PNG or JPEG shield."; };
+        img.src = reader.result;
       };
       reader.readAsDataURL(file);
     });
@@ -212,6 +227,7 @@ function simulateCombat(countries, chaos, terrain, random = Math.random) {
   const initialB = scoreSide(armies, "B").baseWithSynergy;
   const defense = {plains: 1, hills: 1.15, fortifications: 1.3}[terrain] || 1;
   const rounds = [];
+  const roundDetails = [];
   let finalA = 0, finalB = 0;
   for (let round = 1; round <= 6; round++) {
     finalA = withChaos(scoreSide(armies, "A").baseWithSynergy, chaos, random);
@@ -232,6 +248,7 @@ function simulateCombat(countries, chaos, terrain, random = Math.random) {
       });
     });
     rounds.push(`Round ${round}: attacker lost ${losses.A} units; defender lost ${losses.B} units.`);
+    roundDetails.push({round, losses:{...losses}, remaining:{A:armies.filter(c=>c.side==='A').reduce((n,c)=>n+armySize(c),0),B:armies.filter(c=>c.side==='B').reduce((n,c)=>n+armySize(c),0)}});
     const remainingA = scoreSide(armies, "A").baseWithSynergy;
     const remainingB = scoreSide(armies, "B").baseWithSynergy;
     if (remainingA < initialA * 0.45 || remainingB < initialB * 0.45) break;
@@ -243,7 +260,7 @@ function simulateCombat(countries, chaos, terrain, random = Math.random) {
     index: country.index, name: country.name, side: country.side,
     units: UNIT_TYPES.map(unit => ({...unit, before: country[unit.key], lost: country[unit.key] - armies[index][unit.key], remaining: armies[index][unit.key]}))
   }));
-  return {finalA: remainingA, finalB: remainingB * defense, winnerSide, casualties, rounds};
+  return {finalA: remainingA, finalB: remainingB * defense, winnerSide, casualties, rounds, roundDetails};
 }
 
 function resolveAllies(countries, attacker, defender, chance, random = Math.random, hatred = 60, betrayal = 40) {
@@ -360,7 +377,7 @@ function runBattle() {
   const margin = Math.abs(winnerFinal - loserFinal);
   const total = Math.max(finalA + finalB, 1);
 
-  renderResults({
+  const battleModel = {
     combat,
     countries,
     sideA,
@@ -381,12 +398,14 @@ function runBattle() {
     total,
     chaos,
     upset
-  });
+  };
+  renderResults(battleModel);
   combat.casualties.forEach(record => {
     const card = grid.querySelectorAll(".country-card")[record.index];
     record.units.forEach(unit => { card.querySelector(`.country-${unit.key}`).value = unit.remaining; });
   });
   formMessage.textContent = "Losses applied. Army fields now show survivors available for the next battle.";
+  if (typeof recordMapBattle === "function") recordMapBattle(battleModel);
 }
 
 function renderResults(model) {
@@ -455,8 +474,12 @@ function renderCasualties(records) {
     const title = document.createElement("strong");
     title.textContent = `${record.name}${record.side ? "" : " — neutral"}`;
     const details = document.createElement("div");
-    details.className = "loss-table";
-    details.innerHTML = `<table><thead><tr><th>Unit</th><th>Before</th><th>Lost</th><th>Left</th></tr></thead><tbody>${record.units.map(unit => `<tr><th>${unit.label}</th><td>${unit.before}</td><td>${unit.lost}</td><td>${unit.remaining}</td></tr>`).join("")}</tbody></table>`;
+    details.className = "loss-facts";
+    record.units.forEach(unit => {
+      const fact = document.createElement("p");
+      fact.textContent = `${unit.label}: began with ${unit.before.toLocaleString()}; lost ${unit.lost.toLocaleString()}; ${unit.remaining.toLocaleString()} remain.`;
+      details.append(fact);
+    });
     div.append(title, details); return div;
   }));
 }

@@ -5,26 +5,71 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
   <header class="app-header">
     <div>
       <p class="eyebrow">Campaign command</p>
       <h1>Kingdoms at War</h1>
-      <p class="intro">Create five kingdoms, form alliances and rivalries, and fight battles shaped by terrain, army strength, and betrayal. Survivors carry into the next battle.</p>
+      <p class="intro">Make your own world. Download the map for Google Docs, choose five countries, and write the history of their battles.</p>
     </div>
     <div class="status-card" aria-live="polite">
       <span class="status-label">Mode</span>
       <strong>Campaign simulation</strong>
-      <span>Losses reduce available armies after every battle. Refreshing resets this session; download reports to keep your results.</span>
+      <span>Your work saves in this browser. Download My Progress to take it to another computer. Each battle reduces your armies.</span>
     </div>
   </header>
 
   <main>
+    <section id="mapSection" class="map-section" aria-labelledby="worldTitle">
+      <div class="section-heading"><div><p class="eyebrow">1 · Make your world</p><h2 id="worldTitle">Your World</h2><p>Upload your map PNG, or reroll a biome map. Use the clean PNG in your Google Doc.</p></div></div>
+      <div class="action-row map-actions">
+        <label class="file-button">Upload Map PNG<input id="uploadMapImage" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <button id="rerollWorld" class="secondary-button" type="button">Reroll World</button>
+        <button id="downloadMap" class="primary-button" type="button">Download Clean PNG</button>
+        <button id="saveProgress" class="secondary-button" type="button">Download My Progress</button>
+        <label class="file-button">Open My Progress<input id="loadProgress" type="file" accept=".json,application/json"></label>
+      </div>
+      <p id="worldStatus" role="status" class="save-status">Creating your world…</p>
+      <div id="worldMap" class="world-map">
+        <div id="mapScene"><canvas id="worldCanvas" width="1200" height="700" role="img" aria-label="Your world map with fifteen named countries. Choose five using the country selectors below."></canvas>
+        <svg id="battleArrows" viewBox="0 0 1200 700" aria-label="Battle movement arrows"></svg>
+        <div id="shieldMarkers"></div></div>
+      </div>
+      <div class="map-tools action-row"><button id="zoomOut" class="secondary-button" type="button">Zoom Out</button><button id="zoomIn" class="secondary-button" type="button">Zoom In</button><button id="overviewMap" class="secondary-button" type="button">Overview</button><button id="downloadScene" class="secondary-button" type="button" disabled>Download This Battle Picture</button></div>
+      <div id="biomeLegend" class="biome-legend">Biome view: <span>🌿 Grassland</span><span>🌲 Forest</span><span>⛰ Highlands</span><span>☀ Drylands</span></div>
+      <p class="map-help">The five numbered shields match your country cards. On an uploaded map, type the country names and place the shields yourself. Names and terrain are not automatically read from a PNG. Add your own shield below, then drag it on the map—or focus it and use arrow keys. Moving a shield does not change borders. Clean PNG downloads exclude shields and arrows. Battle pictures include them.</p>
+      <div id="playbackPanel" hidden class="playback-panel">
+        <h3 id="playbackTitle">Battle replay</h3><h4 id="sceneHeading"></h4>
+        <p class="map-help">Red: attack · Blue: reinforcement · Purple: withdrawal. Arrows show simplified movement, not calculated travel routes. Replay never deducts troops again.</p>
+        <div class="action-row"><button id="playBattle" class="secondary-button" type="button">Replay Battle</button><button id="pauseBattle" class="secondary-button" type="button">Pause</button><button id="nextEvent" class="secondary-button" type="button">Next Event</button></div>
+        <p id="currentEvent" aria-live="polite"></p><div id="sceneFacts" class="scene-facts"></div><p class="learning-note">Your Google Docs task: add a heading, insert this scene picture, describe what happened, and create your own table using these facts.</p>
+      </div>
+      <details class="battle-notebook"><summary>Battle evidence · build your own document</summary>
+        <label>Previous battles<select id="battleHistory"><option value="">Choose a previous battle</option></select></label>
+        <div class="action-row"><button id="copyEvents" class="secondary-button" type="button" disabled>Copy Battle Events</button></div>
+        <ol id="mapEvents"></ol>
+      </details>
+      <p class="attribution">Classroom map generator with geography by Kingdoms at War. Starting economy, army composition, and diplomacy adapted from the teacher’s Gria world, created in <a href="https://github.com/Azgaar/Fantasy-Map-Generator" target="_blank" rel="noopener">Azgaar’s Fantasy Map Generator</a> (<a href="vendor/Azgaar-LICENSE.txt">MIT license</a>). Map geometry uses <a href="https://github.com/d3/d3-delaunay" target="_blank" rel="noopener">D3 Delaunay</a> (<a href="vendor/d3-delaunay-LICENSE.txt">ISC license</a>). New maps are simplified classroom worlds, not the full Azgaar generator.</p>
+    </section>
+    <section class="country-section" aria-labelledby="countries-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">2 · Choose your countries</p><h2 id="countries-title">Your Five Countries</h2>
+          <p>Choose five different countries from your map. Their starting troops and gold load for you. Rename them, add your shields, and edit any numbers. Relationships are mutual.</p>
+        </div>
+        <div class="action-row">
+          <button id="sampleButton" type="button" class="secondary-button" hidden>Load Sample</button>
+          <button id="resetButton" type="button" class="secondary-button" hidden>Reset</button>
+        </div>
+      </div>
+      <div id="countryGrid" class="country-grid"></div>
+    </section>
+
     <section class="setup-bar" aria-labelledby="battle-settings-title">
       <div>
-        <h2 id="battle-settings-title">Battle Settings</h2>
+        <p class="eyebrow">3 · Resolve one battle</p><h2 id="battle-settings-title">Battle Settings</h2>
         <p>Choose two countries to battle. Their allies may answer the call.</p>
       </div>
       <div class="settings-grid">
@@ -51,22 +96,8 @@
       </div>
     </section>
 
-    <section class="country-section" aria-labelledby="countries-title">
-      <div class="section-heading">
-        <div>
-          <h2 id="countries-title">Five Countries</h2>
-          <p>Name all five countries, set their resources, and choose allies. Allies and enemies are mutual. A country cannot be both. Hatred and betrayal may change who joins each side.</p>
-        </div>
-        <div class="action-row">
-          <button id="sampleButton" type="button" class="secondary-button">Load Sample</button>
-          <button id="resetButton" type="button" class="secondary-button">Reset</button>
-        </div>
-      </div>
-      <div id="countryGrid" class="country-grid"></div>
-    </section>
-
     <section class="battle-controls" aria-label="Run the battle">
-      <button id="battleButton" type="button" class="primary-button">Run Battle</button>
+      <button id="battleButton" type="button" class="primary-button">Resolve One Battle</button>
       <button id="copyButton" type="button" class="secondary-button" disabled>Copy Report</button>
       <button id="downloadButton" type="button" class="secondary-button" disabled>Download Report</button>
       <p id="formMessage" class="form-message" role="status"></p>
@@ -103,7 +134,7 @@
         </section>
 
         <section class="report-panel" aria-labelledby="consequence-title">
-          <h3 id="consequence-title">Casualties & Survivors</h3>
+          <h3 id="consequence-title">Loss facts for your own table</h3><p>Read these facts, then create and format your table in Google Docs.</p>
           <div id="consequenceList" class="consequence-list"></div>
         </section>
       </div>
@@ -131,32 +162,43 @@
           Country name
           <input class="country-name" type="text" maxlength="38" placeholder="Country name">
         </label>
+        <details class="wide-field country-details"><summary>Country details</summary>
+        <label>Ruler<input class="country-ruler" type="text" maxlength="80"></label>
+        <label>Major export<input class="country-exports" type="text" maxlength="80"></label>
+        <label>Currency name<input class="country-currency" type="text" maxlength="80"></label>
+        <label>National sport<input class="country-sport" type="text" maxlength="80"></label>
+        </details>
         <fieldset class="wide-field allies"><legend>Allies</legend><div class="ally-options"></div></fieldset>
-        <fieldset class="wide-field allies"><legend>Enemies</legend><div class="enemy-options"></div></fieldset>
+        <fieldset class="wide-field allies"><legend>Enemies</legend><div class="enemy-options"></div></fieldset><p class="neutral-list wide-field"></p>
         <label>
           Gold
           <input class="country-gold" type="number" min="0" max="999999" step="1" value="100">
         </label>
         <label>
           Artillery
-          <input class="country-cannons" type="number" min="0" max="9999" step="1" value="5">
+          <input class="country-cannons" type="number" min="0" max="999999" step="1" value="5">
         </label>
         <label>
           Archers
-          <input class="country-books" type="number" min="0" max="9999" step="1" value="5">
+          <input class="country-books" type="number" min="0" max="999999" step="1" value="5">
         </label>
         <label>
           Infantry
-          <input class="country-pens" type="number" min="0" max="9999" step="1" value="25">
+          <input class="country-pens" type="number" min="0" max="999999" step="1" value="25">
         </label>
         <label>
           Cavalry
-          <input class="country-mages" type="number" min="0" max="9999" step="1" value="3">
+          <input class="country-mages" type="number" min="0" max="999999" step="1" value="3">
         </label>
       </div>
     </article>
   </template>
 
-  <script src="app.js?v=4"></script>
+  <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
+  <script src="vendor/d3-delaunay.min.js"></script>
+  <script src="data/gria-template.js"></script>
+  <script src="world-core.js?v=8"></script>
+  <script src="app.js?v=8"></script>
+  <script src="world.js?v=8"></script>
 </body>
 </html>
