@@ -50,15 +50,15 @@ function applyWorld() {
     for (const key of ['gold','cannons','books','pens','mages']) card.querySelector(`.country-${key}`).value = country[key];
     for (const key of ['ruler','exports','currency','sport']) card.querySelector(`.country-${key}`).value=country[key] || '';
     if (country.shield) { card.querySelector('.heraldry-preview').src=country.shield; card.querySelector('.heraldry-drop').classList.add('has-image'); }
-    const label=document.createElement('label'); label.className='wide-field'; label.append(document.createTextNode(`Country ${i+1} on your map`));
-    const select=document.createElement('select'); select.className='map-country'; select.setAttribute('aria-label',`Map country ${i+1}`); label.append(select);
-    card.querySelector('.country-fields').prepend(label);
+    const label=document.createElement('label'); label.className='wide-field'; label.append(document.createTextNode(`Country ${i+1} · Choose land location`));
+    const select=document.createElement('select'); select.className='map-country'; select.setAttribute('aria-label',`Land location for country ${i+1}`); label.append(select);
+    card.prepend(label);
     label.hidden=Boolean(studentWorld.background);
     select.addEventListener('change',() => {
       captureWorld(); const next=Number(select.value);
       if (studentWorld.selected.includes(next)) { refreshRegionChoices(); return; }
-      studentWorld.selected[i]=next; applyWorld(); saveWorld();
-      worldMessage(`Country ${i+1} changed. Its own treasury, troops, and relationships are loaded.`);
+      studentWorld.selected[i]=next; studentWorld.countries[next].position=[...studentWorld.countries[next].capital]; applyWorld(); saveWorld();
+      worldMessage(`Country ${i+1} is placed in ${studentWorld.countries[next].name}. Its troops, gold, and relationships are loaded. Drag its marker to adjust the position.`);
     });
   });
   alliances.clear(); enemies.clear();
@@ -84,7 +84,10 @@ function refreshRegionChoices() {
   cards().forEach((card,i) => {
     const select=card.querySelector('.map-country'); if (!select) return;
     select.replaceChildren(...studentWorld.countries.map(country => {
-      const option=new Option(country.name || `Unnamed country ${country.id+1}`,String(country.id));
+      const [x,y]=country.capital;
+      const region=(y<700/3?'North':y>1400/3?'South':'Central')+(x<400?'west':x>800?'east':'');
+      const taken=studentWorld.selected.includes(country.id) && studentWorld.selected[i]!==country.id;
+      const option=new Option(`${country.name || `Unnamed country ${country.id+1}`} · ${region}${taken?' (already chosen)':''}`,String(country.id));
       option.disabled=studentWorld.selected.includes(country.id) && studentWorld.selected[i]!==country.id; return option;
     })); select.value=String(studentWorld.selected[i]);
   });
