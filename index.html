@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
   <header class="app-header">
@@ -38,7 +38,15 @@
         <div id="shieldMarkers"></div></div>
       </div>
       <div class="map-tools action-row"><button id="zoomOut" class="secondary-button" type="button">Zoom Out</button><button id="zoomIn" class="secondary-button" type="button">Zoom In</button><button id="overviewMap" class="secondary-button" type="button">Overview</button><button id="downloadScene" class="secondary-button" type="button" disabled>Download This Battle Picture</button></div>
-      <div id="biomeLegend" class="biome-legend">Biome view: <span>🌿 Grassland</span><span>🌲 Forest</span><span>⛰ Highlands</span><span>☀ Drylands</span></div>
+      <div id="biomeLegend" class="biome-legend" role="group" aria-label="Map color key">
+        <strong>Map color key</strong>
+        <span><i class="biome-swatch" style="background:#b6cc88" aria-hidden="true"></i>Grassland · light green</span>
+        <span><i class="biome-swatch" style="background:#6c9e78" aria-hidden="true"></i>Forest · dark green</span>
+        <span><i class="biome-swatch" style="background:#9c9888" aria-hidden="true"></i>Highlands · gray</span>
+        <span><i class="biome-swatch" style="background:#dfc88a" aria-hidden="true"></i>Drylands · sand yellow</span>
+        <span><i class="biome-swatch" style="background:#adc9d7" aria-hidden="true"></i>Ocean · blue</span>
+        <small>Shades vary slightly across the land. Dashed lines mark country borders.</small>
+      </div>
       <p class="map-help">The five numbered shields match your country cards. On an uploaded map, type the country names and place the shields yourself. Names and terrain are not automatically read from a PNG. Add your own shield below, then drag it on the map—or focus it and use arrow keys. Moving a shield does not change borders. Clean PNG downloads exclude shields and arrows. Battle pictures include them.</p>
       <div id="playbackPanel" hidden class="playback-panel">
         <h3 id="playbackTitle">Battle replay</h3><h4 id="sceneHeading"></h4>
@@ -197,8 +205,8 @@
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=9"></script>
-  <script src="app.js?v=9"></script>
-  <script src="world.js?v=9"></script>
+  <script src="world-core.js?v=10"></script>
+  <script src="app.js?v=10"></script>
+  <script src="world.js?v=10"></script>
 </body>
 </html>

@@ -556,3 +556,9 @@ dialog p { line-height: 1.6; }
 .country-card > .wide-field { display: block; padding: 14px; background: #e8eee0; border-bottom: 1px solid #c5cfba; }
 .country-card > .wide-field select { width: 100%; margin-top: 8px; }
 .country-card > .wide-field[hidden] { display: none; }
+
+.biome-legend { padding: 12px 14px; border: 1px solid #c5cfba; border-radius: 8px; background: #fffdf6; align-items: center; }
+.biome-legend[hidden] { display: none; }
+.biome-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.biome-swatch { width: 22px; height: 22px; border: 1px solid #536052; border-radius: 4px; flex-shrink: 0; }
+.biome-legend small { flex-basis: 100%; }

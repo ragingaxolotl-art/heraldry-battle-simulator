@@ -120,7 +120,10 @@ function drawWorld(context=mapContext) {
     const label=country.name || 'Unnamed';context.strokeText(label,x,y+22,140);context.fillText(label,x,y+22,140);
   });
   context.textAlign='left';context.fillStyle='#183746';context.font='bold 20px Georgia';context.fillText(`Kingdoms at War · World ${studentWorld.seed.toString(36).toUpperCase()}`,25,35);
-  context.font='12px sans-serif';context.fillText('Fictional classroom geography • Economy & military templates: Gria / Azgaar’s Fantasy Map Generator',25,678);
+  context.fillStyle='rgba(255,253,246,.95)';context.fillRect(20,625,720,32);
+  context.font='13px sans-serif';
+  [['Grassland','#b6cc88'],['Forest','#6c9e78'],['Highlands','#9c9888'],['Drylands','#dfc88a'],['Ocean','#adc9d7']].forEach(([name,color],i)=>{const x=30+i*140;context.fillStyle=color;context.fillRect(x,633,18,16);context.strokeStyle='#536052';context.lineWidth=1;context.strokeRect(x,633,18,16);context.fillStyle='#183746';context.fillText(name,x+25,646);});
+  context.fillStyle='#183746';context.font='12px sans-serif';context.fillText('Fictional classroom geography • Economy & military templates: Gria / Azgaar’s Fantasy Map Generator',25,678);
 }
 function downloadBlob(blob, filename) {const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 function downloadPNG() {
