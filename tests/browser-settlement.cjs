@@ -1,0 +1,16 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});try{
+const page=await browser.newPage({viewport:{width:1200,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto(process.env.BATTLE_URL||'http://127.0.0.1:8021');await page.locator('#atlasTabButton').click();
+await page.locator('#settlementKind').selectOption('village');await page.locator('#settlementRotate').click();
+await page.getByLabel('Mayor (fictional)',{exact:true}).fill('Mayor Willow');await page.getByLabel('Population',{exact:true}).fill('432');await page.getByLabel('Population',{exact:true}).blur();
+const before=await page.evaluate(()=>({...selectedSettlement()}));await page.locator('#settlementGenerate').click();const seed=await page.evaluate(()=>selectedSettlement().mapSeed);assert.notEqual(seed,before.mapSeed);
+await page.reload();await page.locator('#atlasTabButton').click();assert.equal(await page.getByLabel('Mayor (fictional)',{exact:true}).inputValue(),'Mayor Willow');assert.equal(await page.getByLabel('Population',{exact:true}).inputValue(),'432');assert.equal(await page.evaluate(()=>selectedSettlement().mapRotation),90);assert.equal(await page.evaluate(()=>selectedSettlement().mapSeed),seed);
+assert.equal(await page.locator('#atlasBiomes span').count(),13);
+await page.locator('#settlementFrame').scrollIntoViewIfNeeded();
+const frame=page.frameLocator('#settlementFrame');await frame.locator('canvas').first().waitFor({state:'attached',timeout:60000});
+await page.waitForTimeout(12000);
+await page.locator('.settlement-panel').screenshot({path:'/tmp/settlement-preview.png'});
+await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+assert.deepEqual(errors,[]);console.log('Passed: live Watabou canvas, map regeneration, saved rotation/mayor/population/seed, full biome key, mobile width.');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});

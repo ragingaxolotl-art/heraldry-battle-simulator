@@ -33,3 +33,9 @@ for(let total=0;total<30;total++)for(let a=0;a<10;a++)for(let b=0;b<10;b++){
  const limit=a+b;if(total>limit)continue;const values=evaluate(`distributeCounts(${total},[${a},${b}])`);assert.equal(values[0]+values[1],total);assert.ok(values[0]<=a&&values[1]<=b);
 }
 console.log('Passed: land-based cities, Azgaar settlements and export round-trip, regiment/company conservation, partial deployments, untouched reserves, persistent generals and losses, malformed saves.');
+vm.runInContext(`input.settings={populationRate:1000,urbanization:1.5};input.pack.burgs[0].population=2.25;const withPopulation=importAzgaarWorld(input);const populationRoundtrip=importAzgaarWorld(withPopulation.azgaar);`,ctx);
+assert.equal(evaluate('withPopulation.settlements[0].population'),3375);
+assert.equal(evaluate('populationRoundtrip.settlements[0].population'),3375);
+assert.equal(evaluate('imported.settlements[0].population'),null);
+assert.equal(evaluate('rebuilt.countries[0].cities[0].mapSeed'),evaluate('c.cities[0].mapSeed'));
+console.log('Passed: Azgaar population conversion and backup metadata, missing population remains unknown, stable settlement seeds.');

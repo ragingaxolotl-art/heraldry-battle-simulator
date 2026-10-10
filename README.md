@@ -75,3 +75,8 @@ The visible battle report shows countries, winner, troops sent/lost/returned by 
 The advanced version was preserved before simplification at `../saved-versions/advanced-battles-2026-10-09.zip`. Extract it into a separate directory to revisit formations, motion, regiments, and generals. Browser progress is stored separately: use Download My Progress to back up your own world. The simple edition browser check is `tests/browser-simple.cjs`; advanced report/roster browser tests describe the archived interface.
 
 Simplified battle reports include a downloadable close-up of the saved battlefield, with participating shields and approach arrows. Older saved battles regain this picture when their saved map and battle location are available. Run `node tests/browser-closeup.cjs` to verify downloads, replay stability, and mobile layout.
+
+### Settlement maps
+Countries & cities embeds Watabou city and village previews. Each settlement keeps its own map seed, generator choice, preview rotation, fictional mayor, and population in Download My Progress. Havens and smaller settlements default to the village generator; any settlement can switch styles. The external editor provides map exports and palette controls; editor changes do not sync back into this app. Rotation applies only to the preview.
+
+New Azgaar Full JSON imports convert burg population points using the exported populationRate and urbanization settings and preserve these settings in backups. Older imports without these fields show unknown population; classroom-generated populations are labeled estimates. The atlas includes all 13 standard Azgaar biomes and any imported custom palette. Simplified generated worlds retain their own terrain palette.
