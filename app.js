@@ -120,6 +120,35 @@ function createCountryCards() {
       reader.readAsDataURL(file);
     });
 
+    const deployment = document.createElement('fieldset');
+    deployment.className = 'wide-field deployment';
+    deployment.innerHTML = '<legend>Commit to next battle</legend><p>Choose how many of each type to send if this nation joins. Blank means all available. The rest stay safely in reserve.</p>';
+    UNIT_TYPES.forEach(unit => {
+      const label = document.createElement('label');
+      label.textContent = unit.label;
+      const input = document.createElement('input');
+      input.type = 'number'; input.min = '0'; input.max = '999999'; input.step = '1';
+      input.placeholder = 'All available'; input.className = `commit-${unit.key}`;
+      label.append(input); deployment.append(label);
+    });
+    const half = document.createElement('button'); half.type = 'button'; half.className = 'secondary-button'; half.textContent = 'Send half';
+    half.addEventListener('click', () => {
+      UNIT_TYPES.forEach(u => { card.querySelector(`.commit-${u.key}`).value = Math.floor(numberValue(card, `.country-${u.key}`) / 2); });
+      card.dispatchEvent(new Event('input', {bubbles:true}));
+    });
+    const all = document.createElement('button'); all.type = 'button'; all.className = 'secondary-button'; all.textContent = 'Send all';
+    all.addEventListener('click', () => {
+      UNIT_TYPES.forEach(u => { card.querySelector(`.commit-${u.key}`).value = ''; });
+      card.dispatchEvent(new Event('input', {bubbles:true}));
+    });
+    const summary = document.createElement('p'); summary.className = 'deployment-summary'; summary.setAttribute('aria-live','polite');
+    deployment.append(half, all, summary); card.querySelector('.country-pens').parentElement.parentElement.append(deployment);
+    const updateDeployment = () => {
+      let available=0, committed=0;
+      UNIT_TYPES.forEach(u => { const total=numberValue(card, `.country-${u.key}`); const input=card.querySelector(`.commit-${u.key}`); available+=total; committed+=input.value===''?total:Math.min(total,Math.max(0,Math.floor(Number(input.value)||0))); });
+      summary.textContent = `${committed.toLocaleString()} committed · ${(available-committed).toLocaleString()} in reserve. Requests above availability use only available troops.`;
+    };
+    card.addEventListener('input', updateDeployment); updateDeployment();
     grid.appendChild(card);
   }
   refreshCountryChoices();
@@ -170,6 +199,7 @@ function getCountries() {
     index,
     name: card.querySelector(".country-name").value.trim(),
     side: null,
+    commitment: Object.fromEntries(UNIT_TYPES.map(u => {const value=card.querySelector(`.commit-${u.key}`).value; return [u.key, value === '' ? null : Math.min(999999,Math.max(0,Math.floor(Number(value)||0)))];})),
     gold: numberValue(card, ".country-gold"),
     cannons: numberValue(card, ".country-cannons"),
     books: numberValue(card, ".country-books"),
@@ -234,7 +264,23 @@ function validate(countries) {
   const attacker = Number(document.querySelector("#sideAName").value);
   const defender = Number(document.querySelector("#sideBName").value);
   if (!armySize(countries[attacker]) || !armySize(countries[defender])) return "Both selected countries need an army before they can fight.";
+  const deployed = prepareBattleForces(countries.map(c=>({...c,side:'A'})));
+  if (!armySize(deployed[attacker]) || !armySize(deployed[defender])) return 'Both opponents must commit at least one unit. Their reserves cannot fight for them.';
   return "";
+}
+
+function prepareBattleForces(countries) {
+  return countries.map(country => {
+    const force={...country, available:{}, reserves:{}};
+    UNIT_TYPES.forEach(({key}) => {
+      const available=country[key];
+      const requested=country.commitment?.[key];
+      const committed=country.side ? requested == null ? available : Math.min(available,Math.max(0,Math.floor(Number(requested)||0))) : 0;
+      force.available[key]=available; force.reserves[key]=available-committed; force[key]=committed;
+    });
+    if (!armySize(force)) force.side=null;
+    return force;
+  });
 }
 
 function countryBasePower(country) {
@@ -276,6 +322,7 @@ function simulateCombat(countries, chaos, terrain, random = Math.random) {
     finalB = withChaos(scoreSide(armies, "B").baseWithSynergy * defense, chaos, random);
     if (!finalA || !finalB) break;
     const losses = {A: 0, B: 0};
+    const beforeRound=armies.map(c=>({...c}));
     // Both sides take losses from the same pre-round strength snapshot.
     armies.forEach(country => {
       if (!country.side) return;
@@ -290,7 +337,7 @@ function simulateCombat(countries, chaos, terrain, random = Math.random) {
       });
     });
     rounds.push(`Round ${round}: attacker lost ${losses.A} units; defender lost ${losses.B} units.`);
-    roundDetails.push({round, losses:{...losses}, remaining:{A:armies.filter(c=>c.side==='A').reduce((n,c)=>n+armySize(c),0),B:armies.filter(c=>c.side==='B').reduce((n,c)=>n+armySize(c),0)}});
+    roundDetails.push({round, countries:armies.filter(c=>c.side).map(c=>{const before=beforeRound.find(b=>b.index===c.index);return {index:c.index,name:c.name,side:c.side,units:UNIT_TYPES.map(u=>({label:u.label,before:before[u.key],lost:before[u.key]-c[u.key],remaining:c[u.key]}))};}), losses:{...losses}, remaining:{A:armies.filter(c=>c.side==='A').reduce((n,c)=>n+armySize(c),0),B:armies.filter(c=>c.side==='B').reduce((n,c)=>n+armySize(c),0)}});
     const remainingA = scoreSide(armies, "A").baseWithSynergy;
     const remainingB = scoreSide(armies, "B").baseWithSynergy;
     if (remainingA < initialA * 0.45 || remainingB < initialB * 0.45) break;
@@ -300,7 +347,7 @@ function simulateCombat(countries, chaos, terrain, random = Math.random) {
   const winnerSide = remainingA === 0 ? "B" : remainingB === 0 ? "A" : remainingA < initialA * 0.45 ? "B" : remainingB < initialB * 0.45 ? "A" : remainingA > remainingB * defense ? "A" : "B";
   const casualties = countries.map((country, index) => ({
     index: country.index, name: country.name, side: country.side,
-    units: UNIT_TYPES.map(unit => ({...unit, before: country[unit.key], lost: country[unit.key] - armies[index][unit.key], remaining: armies[index][unit.key]}))
+    units: UNIT_TYPES.map(unit => ({...unit, before: country[unit.key], lost: country[unit.key] - armies[index][unit.key], remaining: armies[index][unit.key], reserve: country.reserves?.[unit.key] || 0, available: country.available?.[unit.key] ?? country[unit.key], nationalRemaining: armies[index][unit.key] + (country.reserves?.[unit.key] || 0)}))
   }));
   return {finalA: remainingA, finalB: remainingB * defense, winnerSide, casualties, rounds, roundDetails};
 }
@@ -379,7 +426,7 @@ function resolveAllies(countries, attacker, defender, chance, random = Math.rand
 }
 
 function runBattle() {
-  const countries = getCountries();
+  let countries = getCountries();
   const error = validate(countries);
   if (error) {
     formMessage.textContent = error;
@@ -398,6 +445,8 @@ function runBattle() {
   const chance = Math.max(0, Math.min(100, Number(document.querySelector("#allyChance").value) || 0));
   const percentage = id => Math.max(0, Math.min(100, Number(document.getElementById(id).value) || 0));
   const responses = resolveAllies(countries, attacker, defender, chance, Math.random, percentage("hatredChance"), percentage("betrayalChance"));
+  countries = prepareBattleForces(countries);
+  countries.filter(c=>!c.side).forEach(c=>responses.push(`${c.name} commits no troops; its entire army stays in reserve.`));
   document.querySelector("#allyResponses").replaceChildren(...responses.map(text => {
     const item = document.createElement("li");
     item.textContent = text;
@@ -444,9 +493,10 @@ function runBattle() {
   renderResults(battleModel);
   combat.casualties.forEach(record => {
     const card = grid.querySelectorAll(".country-card")[record.index];
-    record.units.forEach(unit => { card.querySelector(`.country-${unit.key}`).value = unit.remaining; });
+    record.units.forEach(unit => { card.querySelector(`.country-${unit.key}`).value = unit.nationalRemaining; });
   });
-  formMessage.textContent = "Losses applied. Army fields now show survivors available for the next battle.";
+  grid.querySelectorAll('.country-card').forEach(card=>card.dispatchEvent(new Event('input',{bubbles:true})));
+  formMessage.textContent = "Losses applied only to committed troops. Army fields include returning survivors and untouched reserves.";
   if (typeof recordMapBattle === "function") recordMapBattle(battleModel);
 }
 
@@ -519,7 +569,7 @@ function renderCasualties(records) {
     details.className = "loss-facts";
     record.units.forEach(unit => {
       const fact = document.createElement("p");
-      fact.textContent = `${unit.label}: began with ${unit.before.toLocaleString()}; lost ${unit.lost.toLocaleString()}; ${unit.remaining.toLocaleString()} remain.`;
+      fact.textContent = `${unit.label}: committed ${unit.before.toLocaleString()}; lost ${unit.lost.toLocaleString()}; ${unit.remaining.toLocaleString()} returned; ${unit.reserve.toLocaleString()} in reserve; ${unit.nationalRemaining.toLocaleString()} available nationally.`;
       details.append(fact);
     });
     div.append(title, details); return div;
@@ -565,7 +615,7 @@ function buildTextReport(data) {
     ...[...document.querySelectorAll("#allyResponses li")].map(item => item.textContent),
     "",
     "Casualties (before / lost / remaining):",
-    ...data.combat.casualties.map(record => `${record.name}: ${record.units.map(unit => `${unit.label} ${unit.before}/${unit.lost}/${unit.remaining}`).join("; ")}`),
+    ...data.combat.casualties.map(record => `${record.name}: ${record.units.map(unit => `${unit.label} ${unit.before}/${unit.lost}/${unit.remaining}, reserve ${unit.reserve}, national remaining ${unit.nationalRemaining}`).join("; ")}`),
     "",
     "Combat rounds:",
     ...data.combat.rounds,

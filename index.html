@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
   <header class="app-header">
@@ -23,8 +23,9 @@
 
   <main>
     <section id="mapSection" class="map-section" aria-labelledby="worldTitle">
-      <div class="section-heading"><div><p class="eyebrow">1 · Make your world</p><h2 id="worldTitle">Your World</h2><p>Upload your map PNG, or reroll a biome map. Use the clean PNG in your Google Doc.</p></div></div>
+      <div class="section-heading"><div><p class="eyebrow">1 · Make your world</p><h2 id="worldTitle">Your World</h2><p>Import an Azgaar Full JSON to keep its countries and biomes. Or upload a PNG for manual placement, or reroll a simplified world. Download the clean PNG for your Google Doc.</p></div></div>
       <div class="action-row map-actions">
+        <label class="file-button">Import Azgaar World<input id="importAzgaar" type="file" accept=".json,application/json"></label>
         <label class="file-button">Upload Map PNG<input id="uploadMapImage" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <button id="rerollWorld" class="secondary-button" type="button">Reroll World</button>
         <button id="downloadMap" class="primary-button" type="button">Download Clean PNG</button>
@@ -33,7 +34,7 @@
       </div>
       <p id="worldStatus" role="status" class="save-status">Creating your world…</p>
       <div id="worldMap" class="world-map">
-        <div id="mapScene"><canvas id="worldCanvas" width="1200" height="700" role="img" aria-label="Your world map with fifteen named countries. Choose five using the country selectors below."></canvas>
+        <div id="mapScene"><canvas id="worldCanvas" width="1200" height="700" role="img" aria-label="Your world map with named countries. Choose five using the country selectors below."></canvas>
         <svg id="battleArrows" viewBox="0 0 1200 700" aria-label="Battle movement arrows"></svg>
         <div id="shieldMarkers"></div></div>
       </div>
@@ -52,6 +53,7 @@
         <h3 id="playbackTitle">Battle replay</h3><h4 id="sceneHeading"></h4>
         <p class="map-help">Red: attack · Blue: reinforcement · Purple: withdrawal. Arrows show simplified movement, not calculated travel routes. Replay never deducts troops again.</p>
         <div class="action-row"><button id="playBattle" class="secondary-button" type="button">Replay Battle</button><button id="pauseBattle" class="secondary-button" type="button">Pause</button><button id="nextEvent" class="secondary-button" type="button">Next Event</button></div>
+        <img id="tacticalPreview" class="tactical-preview" alt="Tactical battle picture" hidden>
         <p id="currentEvent" aria-live="polite"></p><div id="sceneFacts" class="scene-facts"></div><p class="learning-note">Your Google Docs task: add a heading, insert this scene picture, describe what happened, and create your own table using these facts.</p>
       </div>
       <details class="battle-notebook"><summary>Battle evidence · build your own document</summary>
@@ -65,7 +67,7 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">2 · Choose your countries</p><h2 id="countries-title">Your Five Countries</h2>
-          <p>Use the land-location dropdown at the top of each card to choose five different countries on a generated map. Each marker moves to its chosen land, and troops and gold load for you. Then rename your countries, add shields, and use the map markers to adjust their positions. For an uploaded PNG, place the markers yourself because the picture does not contain a list of locations. Relationships are mutual.</p>
+          <p>Use the land-location dropdown at the top of each card to choose five different countries on a generated or imported Azgaar map. Each marker moves to its chosen land, and troops and gold load for you. Then rename your countries, add shields, and use the map markers to adjust their positions. For an uploaded PNG, place the markers yourself because the picture does not contain a list of locations. Relationships are mutual.</p>
         </div>
         <div class="action-row">
           <button id="sampleButton" type="button" class="secondary-button" hidden>Load Sample</button>
@@ -111,6 +113,7 @@
       <p id="formMessage" class="form-message" role="status"></p>
     </section>
 
+    <section id="afterActionBlocks" class="after-action-blocks" aria-label="Battle reports" hidden></section>
     <section id="results" class="results hidden" aria-live="polite">
       <div class="result-topline">
         <div>
@@ -206,8 +209,10 @@
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=11"></script>
-  <script src="app.js?v=11"></script>
-  <script src="world.js?v=11"></script>
+  <script src="world-core.js?v=13"></script>
+  <script src="azgaar.js?v=13"></script>
+  <script src="app.js?v=13"></script>
+  <script src="battle-picture.js?v=13"></script>
+  <script src="world.js?v=13"></script>
 </body>
 </html>

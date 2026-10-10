@@ -61,3 +61,9 @@ assert.ok(combat.battle.casualties[0].units.some(u=>u.lost>0));
 const fortified = JSON.parse(JSON.stringify(vm.runInContext("combatTrial('fortifications')",context)));
 assert.equal(fortified.battle.winnerSide,'B');
 console.log('Passed: casualty conservation, whole nonnegative survivors, neutral preservation, no source mutation, empty armies, defensive terrain.');
+
+for(const record of combat.battle.casualties.filter(c=>c.side))for(const unit of record.units){
+  const sum=combat.battle.roundDetails.reduce((n,r)=>n+r.countries.find(c=>c.name===record.name).units.find(u=>u.label===unit.label).lost,0);
+  assert.equal(sum,unit.lost,'round unit losses must add up to final battle losses');
+}
+console.log('Passed: per-country, per-unit round facts reconcile with final losses.');
