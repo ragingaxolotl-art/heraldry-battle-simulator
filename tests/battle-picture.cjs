@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const context=vm.createContext({console,document:{querySelector:()=>({addEventListener(){}})}});
-for(const file of ['app.js','battle-picture.js'])vm.runInContext(fs.readFileSync(file,'utf8').replace(/createCountryCards\(\);\s*$/,''),context);
+for(const file of ['formations.js','app.js','battle-picture.js'])vm.runInContext(fs.readFileSync(file,'utf8').replace(/createCountryCards\(\);\s*$/,''),context);
 const result=JSON.parse(vm.runInContext(`JSON.stringify((()=>{
  const nations=[
  {index:0,name:'A',side:'A',gold:100,cannons:50,books:200,pens:1000,mages:100,commitment:{cannons:0,books:100,pens:400,mages:25}},
@@ -51,3 +51,7 @@ assert.deepEqual(restored.countries[0].commitment,{cannons:0,books:12,pens:100,m
 assert.equal(restored.history[0].scenes.length,result.battle.scenes.length);
 assert.deepEqual(restored.history[0].scenes.at(-1).tactical,result.battle.scenes.at(-1).tactical);
 console.log('Passed: JSON save/restore preserves exact commitments, zero/all choices, and tactical round/outcome snapshots.');
+for(const bad of [null,{...result.battle.scenes[0].tactical,formations:[null]},{...result.battle.scenes[0].tactical,formations:[{...result.battle.scenes[0].tactical.formations[0],units:[null,null,null,null]}]}])assert.equal(Boolean(vm.runInContext(`validTacticalScene(${JSON.stringify(bad)})`,context)),false);
+vm.runInContext(`(()=>{const save=generateStudentWorld(42,GRIA_TEMPLATE);save.history=[{title:'Broken replay',winner:'A',events:[],arrows:[null]}];if(validateWorldSave(save).history.length)throw Error('Malformed replay retained');})()`,context);
+vm.runInContext(`(()=>{for(const layout of FORMATIONS)for(const maneuver of MANEUVERS){const f={name:'Test Nation',side:'A',formation:layout.id,maneuver:maneuver.id,units:UNIT_TYPES.map(u=>({...u,committed:10,remaining:8,lost:2,reserve:90,roundLost:1}))};const t={phase:'combat',winnerSide:'B'};const text=narrateFormation(f,t);if(!text.includes(layout.name.toLowerCase())||!text.includes(maneuver.name.toLowerCase())||!text.includes('4 units were lost this round'))throw Error('Missing narration');if(formationStatus(f,{...t,phase:'outcome'}).label!=='Defeat · withdrawal')throw Error('Wrong defeat');f.units.forEach(u=>{u.remaining=0;u.lost=10;});if(formationStatus(f,{...t,phase:'outcome',winnerSide:'A'}).label!=='Force lost')throw Error('Destroyed winning contingent mislabeled');}})()`,context);
+console.log('Passed: 84 narrated combinations, defeat and destroyed contingents, null replay recovery.');

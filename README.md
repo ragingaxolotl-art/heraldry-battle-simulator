@@ -53,3 +53,17 @@ Run `node tests/azgaar.cjs` for imported geometry, palettes and save restoration
 Choose exact troop commitments in each country card, or use **Send half**. Uncommitted troops remain in national reserve. New battle reports include both geographic location pictures and tactical formation pictures with heraldry, losses, survivors, victory/defeat, and a symbol key. See [battle image details and Sparta assessment](docs/battle-images.md).
 
 Run `node tests/battle-picture.cjs` for commitment and image-data checks; `tests/browser-battle.cjs` covers browser rendering, PNG export, and replay/restoration.
+
+Choose from **12 formations and 7 maneuvers** in each country card. New tactical PNGs place formation blocks directly on a zoomed-in version of the saved map, with heraldry and force accounting. These are illustrated plans; formation choices do not change the combat math. Historical references and behavior are documented in [battle image details](docs/battle-images.md).
+
+## Countries, cities, and named armies
+
+The **Countries & cities** tab highlights the five selected countries. Choose a country to zoom to its territory, then click a city or choose it from the list. Country and city notebooks use the assignment's ruler, major export, money name, and favorite sport prompts, plus a city story field. Country edits stay synchronized with the battle cards.
+
+Azgaar Full JSON imports now retain settlement names, state ownership, capitals, and locations, including non-capital settlements. Old backups that discarded those settlements cannot recover them; reimport the original Full JSON to start a world with them. Simplified worlds generate up to three cities on each country's land. PNG backgrounds have no readable borders; country circles and editable city placements are illustrative. Existing city notes survive switching to a PNG background. **Download this map** exports the highlighted atlas view for students to insert in Google Docs.
+
+Each country has three persistent, editable regiments with fictional generals, story personalities, home cities, and company/battery breakdowns. These subdivide the existing national army; they do not add troops. Uncheck a regiment to keep it home. Numeric troop commitments can further limit the checked force. Combat still uses the existing national simulation; recorded losses are allocated proportionally among the deployed regiments by unit type with exact integer accounting. Uncommitted troops remain intact. Commander personalities are narrative only, and regiment map locations are home stations rather than travel/pathfinding rules. New reports name generals and show regiment losses and survivors as fact paragraphs. No ready-made student tables are generated.
+
+Cities, notes, army names, deployment choices, and surviving unit totals persist in browser storage and **Download My Progress** backups. Earlier saves receive generated cities and regiment identities on upgrade. Battle replay never applies losses again.
+
+Run `node tests/campaign.cjs` for settlement import, persistent identity, and troop conservation. Run `node tests/browser-campaign.cjs` against a local server with `BATTLE_URL`, `PLAYWRIGHT_MODULE`, and `BROWSER_PATH` as needed for editing, PNG downloads, save/restore, battles, deployment choices, mobile layout, and Azgaar settlement checks. Run `node tests/azgaar.cjs` first to create its import fixture.

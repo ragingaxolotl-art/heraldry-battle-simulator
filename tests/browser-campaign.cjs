@@ -1,0 +1,65 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(process.env.BROWSER_PATH?{executablePath:process.env.BROWSER_PATH}:{})});
+ try{
+  const page=await browser.newPage({viewport:{width:1440,height:1100}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(process.env.BATTLE_URL||'http://127.0.0.1:8021');
+  await page.waitForFunction(()=>globalThis.campaignReady&&studentWorld.countries[0].regiments);
+  await page.click('#atlasTabButton');
+  assert.equal(await page.locator('#battleWorkspace').isVisible(),false);
+  assert.equal(await page.locator('#atlasCountries button').count(),5);
+  await page.locator('#atlasCountries button').first().click();
+  await page.locator('#atlasCountryEditor').getByLabel('Major export',{exact:true}).fill('Moon cheese');
+  await page.locator('#atlasCityEditor').getByLabel('City name',{exact:true}).fill('Moonmarket');
+  await page.locator('#atlasCityEditor').getByLabel('Ruler / leader',{exact:true}).fill('Mayor Waffle');
+  await page.locator('#atlasCityEditor').getByLabel('What makes this city special?',{exact:true}).fill('The library is inside a giant tree.');
+  await page.locator('#regimentCards').getByLabel('General’s name',{exact:true}).first().fill('Mira Moonbeam');
+  await page.locator('#regimentCards').getByLabel('Regiment name',{exact:true}).first().fill('Moonlit Guard');
+  await page.locator('#regimentCards').getByLabel('Available for battle',{exact:true}).last().uncheck();
+  const before=await page.evaluate(()=>JSON.parse(JSON.stringify(studentWorld.countries[0])));
+  const [atlasDownload]=await Promise.all([page.waitForEvent('download'),page.click('#atlasDownload')]);await atlasDownload.saveAs('/tmp/campaign-atlas-export.png');assert.ok(fs.statSync('/tmp/campaign-atlas-export.png').size>10000);
+  await page.screenshot({path:'/tmp/student-atlas-country.png',fullPage:true});
+  await page.reload();await page.waitForFunction(()=>globalThis.campaignReady);await page.click('#atlasTabButton');
+  assert.equal(await page.locator('#atlasCityEditor').getByLabel('City name',{exact:true}).inputValue(),'Moonmarket');
+  assert.equal(await page.locator('#regimentCards').getByLabel('General’s name',{exact:true}).first().inputValue(),'Mira Moonbeam');
+  assert.equal(await page.locator('#regimentCards').getByLabel('Available for battle',{exact:true}).last().isChecked(),false);
+  await page.click('#battleTabButton');assert.equal(await page.locator('.country-exports').first().inputValue(),'Moon cheese');
+  await page.evaluate(()=>{Math.random=()=>.31;alliances.clear();enemies.clear();refreshCountryChoices();});
+  await page.locator('#battleCountryChoices button').nth(0).click();await page.locator('#battleCountryChoices button').nth(1).click();
+  await page.waitForFunction(()=>studentWorld.history.length===1&&document.querySelectorAll('.tactical-battle-image').length===studentWorld.history[0].scenes.length);
+  const after=await page.evaluate(()=>({country:studentWorld.countries[0],battle:studentWorld.history[0],valid:studentWorld.history[0].scenes.every(s=>validTacticalScene(s.tactical))}));
+  assert.equal(after.valid,true);
+  assert.deepEqual(after.country.regiments[2].units,before.regiments[2].units,'unchecked regiment stays intact');
+  assert.equal(after.country.regiments[2].battles,0);
+  assert.equal(after.country.regiments[0].battles,1);
+  assert.ok(after.battle.scenes[0].text.includes('Mira Moonbeam'));
+  assert.ok(after.battle.scenes.some(s=>s.facts.some(f=>f.includes('Moonlit Guard')&&f.includes('surviving'))));
+  for(const key of ['pens','books','mages','cannons'])assert.equal(after.country.regiments.reduce((n,r)=>n+r.units[key],0),after.country[key]);
+  const saved=await page.evaluate(()=>JSON.stringify(compactWorld()));
+  assert.equal(await page.evaluate(()=>JSON.stringify(validateWorldSave(JSON.parse(JSON.stringify(compactWorld())))).includes('Mayor Waffle')),true);
+  const roster=JSON.stringify(after.country.regiments);
+  await page.evaluate(()=>{showBattle(studentWorld.history[0]);advancePlayback();});
+  assert.equal(await page.evaluate(()=>JSON.stringify(studentWorld.countries[0].regiments)),roster);
+  await page.reload();await page.waitForFunction(()=>globalThis.campaignReady);assert.equal(await page.evaluate(()=>JSON.stringify(studentWorld.countries[0].regiments)),roster);
+  // A real download/upload restore retains the notebook and named army identities.
+  await page.locator('#loadProgress').setInputFiles({name:'campaign-backup.json',mimeType:'application/json',buffer:Buffer.from(saved)});await page.click('#confirmReplace');
+  assert.equal(await page.evaluate(()=>studentWorld.countries[0].cities[0].ruler),'Mayor Waffle');
+  await page.click('#atlasTabButton');
+  await page.locator('#regimentCards').getByLabel('Available for battle',{exact:true}).nth(0).uncheck();await page.locator('#regimentCards').getByLabel('Available for battle',{exact:true}).nth(1).uncheck();
+  await page.click('#battleTabButton');await page.locator('#battleCountryChoices button').nth(0).click();await page.locator('#battleCountryChoices button').nth(1).click();
+  assert.match(await page.locator('#formMessage').textContent(),/commit at least one/);assert.equal(await page.evaluate(()=>studentWorld.history.length),1);
+  await page.click('#atlasTabButton');await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/student-atlas-mobile.png',fullPage:true});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'mobile page fits viewport');
+  // Restore a six-country Azgaar world, including non-capital settlements.
+  const azgaar=JSON.parse(fs.readFileSync('/tmp/azgaar-import-test.json','utf8'));azgaar.pack.burgs=[];
+  azgaar.pack.states.filter(s=>s.i>0).forEach((s,i)=>{s.capital=i*2+1;azgaar.pack.burgs.push({i:i*2+1,state:s.i,name:'Capital '+i,capital:1,x:i*150+35,y:150},{i:i*2+2,state:s.i,name:'Harbor '+i,capital:0,x:i*150+100,y:300});});
+  await page.click('#battleTabButton');await page.locator('#importAzgaar').setInputFiles({name:'azgaar.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(azgaar))});await page.click('#confirmReplace');await page.click('#atlasTabButton');
+  assert.equal(await page.locator('#atlasCitySelect option').count(),2);assert.equal(await page.locator('#atlasCitySelect option').nth(1).textContent(),'Harbor 0');
+  await page.selectOption('#atlasCitySelect','azgaar-city-2');await page.locator('#atlasCityEditor').getByLabel('Major export',{exact:true}).fill('Glowfish');await page.reload();await page.waitForFunction(()=>globalThis.campaignReady);
+  assert.equal(await page.evaluate(()=>studentWorld.countries[0].cities[1].exports),'Glowfish');
+  assert.deepEqual(errors,[]);
+  console.log('Passed: tab navigation, student fields, map PNG, named regiments, deployment selection, battle loss conservation, reload, backup upload, replay, zero deployment, mobile fit, Azgaar city import and restoration.');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

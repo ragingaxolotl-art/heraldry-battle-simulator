@@ -122,7 +122,7 @@ function createCountryCards() {
 
     const deployment = document.createElement('fieldset');
     deployment.className = 'wide-field deployment';
-    deployment.innerHTML = '<legend>Commit to next battle</legend><p>Choose how many of each type to send if this nation joins. Blank means all available. The rest stay safely in reserve.</p>';
+    deployment.innerHTML = '<legend>Commit to next battle</legend><p>Choose how many of each type to send if this nation joins. Blank means all troops in the regiments checked on Countries &amp; cities. The rest stay safely in reserve.</p>';
     UNIT_TYPES.forEach(unit => {
       const label = document.createElement('label');
       label.textContent = unit.label;
@@ -149,6 +149,7 @@ function createCountryCards() {
       summary.textContent = `${committed.toLocaleString()} committed · ${(available-committed).toLocaleString()} in reserve. Requests above availability use only available troops.`;
     };
     card.addEventListener('input', updateDeployment); updateDeployment();
+    addFormationControls(card,card.querySelector('.country-pens').parentElement.parentElement);
     grid.appendChild(card);
   }
   refreshCountryChoices();
@@ -195,10 +196,12 @@ function numberValue(card, selector) {
 }
 
 function getCountries() {
-  return [...document.querySelectorAll(".country-card")].map((card, index) => ({
+  const countries = [...document.querySelectorAll(".country-card")].map((card, index) => ({
     index,
     name: card.querySelector(".country-name").value.trim(),
     side: null,
+    formation: card.querySelector('.formation-choice').value,
+    maneuver: card.querySelector('.maneuver-choice').value,
     commitment: Object.fromEntries(UNIT_TYPES.map(u => {const value=card.querySelector(`.commit-${u.key}`).value; return [u.key, value === '' ? null : Math.min(999999,Math.max(0,Math.floor(Number(value)||0)))];})),
     gold: numberValue(card, ".country-gold"),
     cannons: numberValue(card, ".country-cannons"),
@@ -207,6 +210,7 @@ function getCountries() {
     mages: numberValue(card, ".country-mages"),
     hasHeraldry: card.querySelector(".heraldry-drop").classList.contains("has-image")
   }));
+  return typeof enrichCampaignCountries==='function' ? enrichCampaignCountries(countries) : countries;
 }
 
 function setSample() {
@@ -274,7 +278,7 @@ function prepareBattleForces(countries) {
     const force={...country, available:{}, reserves:{}};
     UNIT_TYPES.forEach(({key}) => {
       const available=country[key];
-      const requested=country.commitment?.[key];
+      const requested=country.regimentCommitment?.[key] ?? country.commitment?.[key];
       const committed=country.side ? requested == null ? available : Math.min(available,Math.max(0,Math.floor(Number(requested)||0))) : 0;
       force.available[key]=available; force.reserves[key]=available-committed; force[key]=committed;
     });
@@ -493,6 +497,7 @@ function runBattle() {
     chaos,
     upset
   };
+  if(typeof settleCampaignBattle==='function')settleCampaignBattle(battleModel);
   renderResults(battleModel);
   combat.casualties.forEach(record => {
     const card = grid.querySelectorAll(".country-card")[record.index];

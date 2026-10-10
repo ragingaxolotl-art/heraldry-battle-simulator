@@ -27,8 +27,8 @@ assert.throws(()=>vm.runInContext('validateWorldSave({...save,countries:save.cou
 console.log('Passed: deterministic worlds, distinct rerolls, 15 selectable land countries, save restoration, duplicate/invalid save rejection.');
 const drawStart=source.indexOf('function drawWorld('),drawEnd=source.indexOf('function downloadBlob(',drawStart);
 vm.runInContext('let studentWorld=generateStudentWorld(42,GRIA_TEMPLATE); const commands=[]; const mapContext=new Proxy({}, {get:(target,key)=>(...args)=>commands.push([key,...args]),set:(target,key,value)=>{commands.push([key,value]);return true;}});'+source.slice(drawStart,drawEnd),context);
-const cleanBefore=vm.runInContext('drawWorld();JSON.stringify(commands)',context);
-const cleanAfter=vm.runInContext('commands.length=0;studentWorld.countries[0].shield="data:image/png;base64,test";studentWorld.countries[0].position=[400,300];drawWorld();JSON.stringify(commands)',context);
+const cleanBefore=vm.runInContext('drawWorldBase(mapContext);JSON.stringify(commands)',context);
+const cleanAfter=vm.runInContext('commands.length=0;studentWorld.countries[0].shield="data:image/png;base64,test";studentWorld.countries[0].position=[400,300];drawWorldBase(mapContext);JSON.stringify(commands)',context);
 assert.equal(cleanBefore,cleanAfter,'clean map drawing must not include shields or draggable positions');
 console.log('Passed: clean PNG rendering is unaffected by shield uploads or movement.');
 if(process.env.WRITE_WORLD_FIXTURE) fs.writeFileSync('/tmp/student-world-backup.json',vm.runInContext('JSON.stringify(save)',context));

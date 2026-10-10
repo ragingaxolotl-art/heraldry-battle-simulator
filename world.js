@@ -9,17 +9,18 @@ let pendingAction = null;
 let backgroundImage = null;
 let reportRenderVersion=0;
 let pickedAttacker=null;
+let preserveUnreadableSave=false;
 let camera = {x:0,y:0,w:1200,h:700};
 const cards = () => [...grid.querySelectorAll('.country-card')];
 function freshSeed() { return crypto.getRandomValues(new Uint32Array(1))[0]; }
-function worldMessage(message) { worldStatus.textContent = message; }
+function worldMessage(message) { worldStatus.textContent = message; const atlasStatus=document.getElementById('atlasStatus');if(atlasStatus)atlasStatus.textContent=message; }
 function compactWorld() { const {cells,...data} = studentWorld; return data; }
 function captureWorld() {
   if (!studentWorld || loadingWorld) return;
   getCountries().forEach((data,i) => {
     const country = studentWorld.countries[studentWorld.selected[i]];
     for (const key of ['name','gold','cannons','books','pens','mages']) country[key] = data[key];
-    country.commitment = data.commitment;
+    country.commitment = data.commitment; country.formation=data.formation; country.maneuver=data.maneuver;
     for (const key of ['ruler','exports','currency','sport']) country[key] = cards()[i].querySelector(`.country-${key}`).value;
     country.originalShield = cards()[i].dataset.originalShield || '';
     country.shield = cards()[i].querySelector('.heraldry-preview').getAttribute('src') || '';
@@ -32,10 +33,11 @@ function captureWorld() {
 }
 function saveWorld() {
   captureWorld();
+  if(preserveUnreadableSave){worldMessage("Automatic saving is paused to protect an unreadable save. Download My Progress to keep your current work.");return;}
   try { localStorage.setItem(STORAGE_KEY,JSON.stringify(compactWorld())); worldMessage('Saved in this browser. Download My Progress to keep a backup or change computers.'); }
   catch { worldMessage('Browser storage is full or unavailable. Use Download My Progress to save your work.'); }
 }
-function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveWorld(); drawWorld(); renderMarkers(); refreshRegionChoices(); updateNeutrals(); renderBattleChoices(); },250); }
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveWorld(); drawWorld(); renderMarkers(); refreshRegionChoices(); updateNeutrals(); renderBattleChoices(); if(typeof refreshCampaign==='function')refreshCampaign(); },250); }
 function clearBattle() {
   clearInterval(playbackTimer); activeBattle = null; playbackIndex = -1;
   document.getElementById('battleArrows').replaceChildren();
@@ -56,6 +58,8 @@ function applyWorld() {
     for (const key of ['ruler','exports','currency','sport']) card.querySelector(`.country-${key}`).value=country[key] || '';
     if (country.shield) { card.dataset.originalShield=country.originalShield || country.shield; card.querySelector('.remove-white').disabled=false;card.querySelector('.restore-shield').disabled=country.shield===card.dataset.originalShield; card.querySelector('.heraldry-preview').src=country.shield; card.querySelector('.heraldry-drop').classList.add('has-image'); }
     UNIT_TYPES.forEach(u=>{card.querySelector(`.commit-${u.key}`).value=country.commitment?.[u.key] ?? '';});
+    card.querySelector('.formation-choice').value=formationChoice(country.formation).id;
+    card.querySelector('.maneuver-choice').value=maneuverChoice(country.maneuver).id;
     card.dispatchEvent(new Event('input'));
     const label=document.createElement('label'); label.className='wide-field'; label.append(document.createTextNode(`Country ${i+1} · Choose land location`));
     const select=document.createElement('select'); select.className='map-country'; select.setAttribute('aria-label',`Land location for country ${i+1}`); label.append(select);
@@ -82,6 +86,7 @@ function applyWorld() {
   loadingWorld=false; loadBackground(); drawWorld(); renderMarkers(); renderHistory();
   renderBiomeKey();
   updateNeutrals();renderBattleChoices();renderAfterAction();
+  if(typeof refreshCampaign==='function')refreshCampaign();
 }
 function updateNeutrals() {
   cards().forEach((card,i)=>{const names=cards().filter((_,j)=>j!==i&&!alliances.has(allianceKey(i,j))&&!enemies.has(allianceKey(i,j))).map(c=>c.querySelector('.country-name').value);card.querySelector('.neutral-list').textContent=`Neutral: ${names.join(', ') || 'None'}`;});
@@ -100,6 +105,10 @@ function refreshRegionChoices() {
   });
 }
 function drawWorld(context=mapContext) {
+  drawWorldBase(context);
+  if(context===mapContext)drawZoomMap();
+}
+function drawWorldBase(context,detail=null) {
   if (!studentWorld) return;
   context.clearRect(0,0,1200,700); context.fillStyle=studentWorld.biomes?.[0]?.color || '#adc9d7'; context.fillRect(0,0,1200,700);
   context.lineJoin='round';
@@ -121,12 +130,13 @@ function drawWorld(context=mapContext) {
     if(edges.has(key)){const edge=edges.get(key);edge.internal=edge.country===cell.country;edge.shared=true;} else edges.set(key,{point,next,country:cell.country,internal:false,shared:false});
   }));
   edges.forEach(edge=>{if(edge.internal)return;context.beginPath();context.moveTo(...edge.point);context.lineTo(...edge.next);context.strokeStyle=edge.shared?'rgba(63,54,38,.65)':'#547987';context.lineWidth=edge.shared?1.2:1.7;context.setLineDash(edge.shared?[3,3]:[]);context.stroke();});context.setLineDash([]);
+  if(detail)drawLocalMapDetails(context,detail);
   studentWorld.countries.forEach(country=>{
-    const [x,y]=country.capital; context.fillStyle='#23332f';context.beginPath();context.arc(x,y,3,0,Math.PI*2);context.fill();
-    context.font='bold 15px Georgia';context.textAlign='center';context.lineWidth=3;context.strokeStyle='rgba(255,253,235,.9)';
-    const label=country.name || 'Unnamed';context.strokeText(label,x,y+22,140);context.fillText(label,x,y+22,140);
+    const [x,y]=country.capital; context.fillStyle='#23332f';context.beginPath();context.arc(x,y,detail?3/detail.zoom:3,0,Math.PI*2);context.fill();
+    context.font=`bold ${detail?15/detail.zoom:15}px Georgia`;context.textAlign='center';context.lineWidth=detail?3/detail.zoom:3;context.strokeStyle='rgba(255,253,235,.9)';
+    const label=country.name || 'Unnamed';context.strokeText(label,x,y+(detail?22/detail.zoom:22),140);context.fillText(label,x,y+(detail?22/detail.zoom:22),140);
   });
-  context.textAlign='left';context.fillStyle='#183746';context.font='bold 20px Georgia';context.fillText(`Kingdoms at War · World ${studentWorld.seed.toString(36).toUpperCase()}`,25,35);
+  context.textAlign='left';if(detail)return;context.fillStyle='#183746';context.font='bold 20px Georgia';context.fillText(`Kingdoms at War · World ${studentWorld.seed.toString(36).toUpperCase()}`,25,35);
   context.fillStyle='rgba(255,253,246,.95)';context.fillRect(20,625,1160,42);
   context.font='13px sans-serif';
   const key=studentWorld.biomes?.filter(Boolean).map(b=>[b.name,b.color]) || [['Grassland','#b6cc88'],['Forest','#6c9e78'],['Highlands','#9c9888'],['Drylands','#dfc88a'],['Ocean','#adc9d7']];
@@ -156,7 +166,7 @@ function renderMarkers() {
   });
 }
 function recordMapBattle(model) {
-  captureWorld();
+  captureWorld(); drawWorld();
   const attacker=Number(document.getElementById('sideAName').value),defender=Number(document.getElementById('sideBName').value);
   const position=index=>[...studentWorld.countries[studentWorld.selected[index]].position];
   const target=model.battlefield?.point || position(defender), arrows=[];
@@ -172,9 +182,11 @@ function recordMapBattle(model) {
   const loserIndex=model.loserSide==='A'?attacker:defender;
   arrows.push({start:target,end:loserIndex===attacker?position(attacker):[Math.min(1170,target[0]+75),Math.max(35,target[1]-65)],color:'#68557f',label:`${model.loserName}: withdrawal`,retreat:true,eventIndex:events.length-1});
   const battle={id:Date.now(),scenes:makeBattleScenes(model,position,target,arrows),title:`${model.sideAName} vs ${model.sideBName}`,winner:model.winnerName,events,arrows,mapSnapshot:document.getElementById('worldCanvas').toDataURL('image/png'),participants:model.countries.filter(c=>c.side).map(c=>({index:c.index,name:c.name,side:c.side,shield:studentWorld.countries[studentWorld.selected[c.index]].shield}))};
+  if(typeof attachCampaignReport==='function')attachCampaignReport(battle,model);
   attachTacticalScenes(battle, model, document.getElementById('terrain').value);
   studentWorld.history.unshift(battle);studentWorld.history=studentWorld.history.slice(0,20); activeBattle=battle;
   saveWorld();renderMarkers();renderHistory();showBattle(battle);renderAfterAction();
+  if(typeof refreshCampaign==='function')refreshCampaign();
   document.getElementById('afterActionBlocks').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function showBattle(battle) {
@@ -240,14 +252,14 @@ function validateWorldSave(data) {
   });
   data.countries.forEach(c=>{if(c.commitment && !UNIT_TYPES.every(u=>c.commitment[u.key]==null || Number.isInteger(c.commitment[u.key])&&c.commitment[u.key]>=0&&c.commitment[u.key]<=999999))throw Error('Invalid troop commitment.');});
   const generated=data.azgaar?importAzgaarWorld(data.azgaar):generateStudentWorld(data.seed,GRIA_TEMPLATE);
-  generated.countries.forEach((country,i)=>{country.commitment=data.countries[i].commitment || {};const original=data.countries[i].originalShield;country.originalShield=typeof original==='string'&&original.length<=1000000&&/^data:image\/(png|jpeg|webp);base64,/.test(original)?original:data.countries[i].shield;});
+  generated.countries.forEach((country,i)=>{country.commitment=data.countries[i].commitment || {};country.formation=typeof formationChoice==='function'?formationChoice(data.countries[i].formation).id:'line';country.maneuver=typeof maneuverChoice==='function'?maneuverChoice(data.countries[i].maneuver).id:'advance';const original=data.countries[i].originalShield;country.originalShield=typeof original==='string'&&original.length<=1000000&&/^data:image\/(png|jpeg|webp);base64,/.test(original)?original:data.countries[i].shield;});
   generated.countries.forEach((country,i)=>{for(const key of ['name','gold','cannons','books','pens','mages','position','shield'])country[key]=data.countries[i][key];for(const key of ['ruler','exports','currency','sport'])country[key]=typeof data.countries[i][key]==='string'?data.countries[i][key].slice(0,80):'';});
   if(data.background && typeof data.background==='string' && data.background.length<6000000 && /^data:image\/(png|jpeg|webp);base64,/.test(data.background))generated.background=data.background;
   generated.selected=data.selected;generated.relations={};
   for(const [key,value] of Object.entries(data.relations||{}))if(/^\d+-\d+$/.test(key)&&['ally','enemy','neutral'].includes(value))generated.relations[key]=value;
   generated.settings={};for(const id of SETTINGS_IDS){const value=String(data.settings?.[id]??'');if(id==='terrain'&&['plains','hills','fortifications'].includes(value)||['sideAName','sideBName'].includes(id)&&/^[0-4]$/.test(value)||id==='chaosLevel'&&/^[1-5]$/.test(value)||['allyChance','hatredChance','betrayalChance'].includes(id)&&/^\d{1,3}$/.test(value)&&Number(value)<=100)generated.settings[id]=value;}
   // Replays are optional; malformed replay data never blocks recovery of the student's armies.
-  generated.history=Array.isArray(data.history)?data.history.slice(0,20).filter(b=>b&&typeof b.title==='string'&&typeof b.winner==='string'&&Array.isArray(b.events)&&b.events.length<100&&b.events.every(e=>typeof e==='string'&&e.length<2000)&&Array.isArray(b.arrows)&&b.arrows.length<=6&&b.arrows.every(a=>[a.start,a.end].every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite))&&/^#[0-9a-f]{6}$/i.test(a.color)&&typeof a.label==='string'&&(a.eventIndex===undefined||Number.isInteger(a.eventIndex)&&a.eventIndex>=0&&a.eventIndex<100))):[];
+  generated.history=Array.isArray(data.history)?data.history.slice(0,20).filter(b=>b&&typeof b.title==='string'&&typeof b.winner==='string'&&Array.isArray(b.events)&&b.events.length<100&&b.events.every(e=>typeof e==='string'&&e.length<2000)&&Array.isArray(b.arrows)&&b.arrows.length<=6&&b.arrows.every(a=>a&&[a.start,a.end].every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite))&&/^#[0-9a-f]{6}$/i.test(a.color)&&typeof a.label==='string'&&(a.eventIndex===undefined||Number.isInteger(a.eventIndex)&&a.eventIndex>=0&&a.eventIndex<100))):[];
   generated.history.forEach(b=>{
     if(typeof b.mapSnapshot!=='string'||b.mapSnapshot.length>3000000||!/^data:image\/png;base64,/.test(b.mapSnapshot))delete b.mapSnapshot;
     b.participants=Array.isArray(b.participants)?b.participants.filter(p=>p&&typeof p.name==='string'&&['A','B'].includes(p.side)&&typeof p.shield==='string'&&(!p.shield||/^data:image\/(png|jpeg|webp);base64,/.test(p.shield))).slice(0,5):[];
@@ -255,13 +267,16 @@ function validateWorldSave(data) {
     b.scenes=Array.isArray(b.scenes)?b.scenes.filter(s=>s&&typeof s.heading==='string'&&typeof s.text==='string'&&Array.isArray(s.facts)&&s.facts.every(f=>typeof f==='string')&&s.view&&['x','y','w','h'].every(k=>Number.isFinite(s.view[k]))&&s.view.w>=200&&s.view.w<=1200&&s.view.h>=100&&s.view.h<=700).slice(0,20):undefined;
     if(!b.scenes?.length)delete b.scenes;else b.scenes.forEach(s=>{if(!validTacticalScene(s.tactical))delete s.tactical;if(!Array.isArray(s.location)||s.location.length!==2||!s.location.every(Number.isFinite))delete s.location;});
   });
+  if(typeof restoreCountryCampaign==='function')generated.countries.forEach((c,i)=>restoreCountryCampaign(generated,c,data.countries[i]));
   return generated;
 }
 function setCamera(view) {
-  const w=Math.max(300,Math.min(1200,view.w));const h=w*700/1200;
+  const w=Math.max(80,Math.min(1200,view.w));const h=w*700/1200;
   camera={x:Math.max(0,Math.min(1200-w,view.x)),y:Math.max(0,Math.min(700-h,view.y)),w,h};
   const scale=1200/w;
+  document.getElementById('mapScene').style.setProperty('--marker-scale',String(1/scale));
   document.getElementById('mapScene').style.transform=`scale(${scale}) translate(${-camera.x/12}%,${-camera.y/7}%)`;
+  drawZoomMap();
 }
 function focusView(point,width=520) {const w=Math.min(1200,width),h=w*700/1200;return {x:Math.max(0,Math.min(1200-w,point[0]-w/2)),y:Math.max(0,Math.min(700-h,point[1]-h/2)),w,h};}
 function makeBattleScenes(model,position,target,arrows) {
@@ -298,7 +313,8 @@ function makeBattleScenes(model,position,target,arrows) {
 function loadBackground() {
   backgroundImage=null;
   if(!studentWorld.background)return;
-  const img=new Image();img.onload=()=>{backgroundImage=img;drawWorld();};img.src=studentWorld.background;
+  const source=studentWorld.background, world=studentWorld;
+  const img=new Image();img.onload=()=>{if(studentWorld!==world||studentWorld.background!==source)return;backgroundImage=img;drawWorld();};img.src=source;
 }
 async function downloadScenePicture() {
   if(!activeBattle)return;
@@ -323,7 +339,7 @@ document.getElementById('uploadMapImage').addEventListener('change',event=>{
   const file=event.target.files[0];if(!file)return;
   if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>30*1024*1024){worldMessage('Choose a PNG, JPEG, or WebP map smaller than 30 MB.');event.target.value='';return;}
   const reader=new FileReader(),img=new Image();
-  img.onload=()=>{const canvas=document.createElement('canvas');const scale=Math.min(1,2000/Math.max(img.width,img.height));canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const data=canvas.toDataURL('image/jpeg',.9);requestReplacement(()=>{captureWorld();studentWorld.background=data;clearBattle();studentWorld.history=[];loadBackground();studentWorld.selected.forEach((id,i)=>{studentWorld.countries[id].position=[240+i*170,350];});applyWorld();saveWorld();worldMessage('Map uploaded. Type the five country names, add shields, and drag each to its place. A PNG supplies the picture; troop and terrain settings stay editable.');},'Use this map picture? Your country details and armies will stay, but the previous battle history will be cleared and shields will be placed across the new map.');};
+  img.onload=()=>{const canvas=document.createElement('canvas');const scale=Math.min(1,2000/Math.max(img.width,img.height));canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const data=canvas.toDataURL('image/jpeg',.9);requestReplacement(()=>{captureWorld();studentWorld.background=data;studentWorld.countries.forEach(c=>c.cities?.forEach(city=>{city.source='manual';}));clearBattle();studentWorld.history=[];loadBackground();studentWorld.selected.forEach((id,i)=>{studentWorld.countries[id].position=[240+i*170,350];});applyWorld();saveWorld();worldMessage('Map uploaded. Type the five country names, add shields, and drag each to its place. A PNG supplies the picture; troop and terrain settings stay editable.');},'Use this map picture? Your country details and armies will stay, but the previous battle history will be cleared and shields will be placed across the new map.');};
   img.onerror=()=>{worldMessage('That image could not be opened. Try a smaller PNG or JPEG export.');};reader.onload=()=>{img.src=reader.result;};reader.onerror=()=>worldMessage('The map file could not be read. Please choose it again.');reader.readAsDataURL(file);event.target.value='';
 });
 document.getElementById('zoomIn').addEventListener('click',()=>setCamera(focusView([camera.x+camera.w/2,camera.y+camera.h/2],camera.w/1.4)));
@@ -345,7 +361,13 @@ grid.addEventListener('input',scheduleSave);grid.addEventListener('change',sched
 SETTINGS_IDS.forEach(id=>document.getElementById(id).addEventListener('change',scheduleSave));
 window.addEventListener('pagehide',saveWorld);
 try {const saved=localStorage.getItem(STORAGE_KEY);if(saved){studentWorld=validateWorldSave(JSON.parse(saved));applyWorld();worldMessage('Welcome back. Your world, shields, armies, and battle history are restored.');}else newWorld();}
-catch {newWorld();worldMessage('Started a new world. If you have a backup, use Open My Progress.');}
+catch {
+  // Preserve the unreadable save before newWorld writes its replacement.
+  let recovered=false;
+  try {const raw=localStorage.getItem(STORAGE_KEY);if(raw){localStorage.setItem(STORAGE_KEY+'-recovery',raw);recovered=true;}}catch {}
+  if(recovered){newWorld();worldMessage('The previous save could not be opened. Its original JSON is preserved in browser storage under '+STORAGE_KEY+'-recovery. Use Open My Progress to load a backup.');}
+  else {preserveUnreadableSave=true;studentWorld=generateStudentWorld(freshSeed(),GRIA_TEMPLATE);applyWorld();worldMessage('The saved world could not be opened. It has not been replaced. Download any backup before editing this new world.');}
+}
 
 function renderBiomeKey() {
   const key=document.getElementById('biomeLegend');key.hidden=Boolean(studentWorld.background);
@@ -426,3 +448,61 @@ function renderBattleChoices() {
       document.getElementById('sideAName').value=String(pickedAttacker);document.getElementById('sideBName').value=String(i);pickedAttacker=null;document.getElementById('cancelBattlePick').hidden=true;runBattle();document.getElementById('battlePickStatus').textContent=formMessage.textContent;renderBattleChoices();});host.append(button);});
 }
 document.getElementById('cancelBattlePick').addEventListener('click',()=>{pickedAttacker=null;document.getElementById('cancelBattlePick').hidden=true;document.getElementById('battlePickStatus').textContent='Choose the attacking country.';renderBattleChoices();});
+
+// Shared map navigation; marker dragging and city placement keep their own gestures.
+function enableMapPanning(element,getView,updateView,enabled=()=>true) {
+  element.tabIndex=0;
+  element.classList.add('pannable-map');
+  element.setAttribute('aria-label','Map. Drag empty ground to pan when zoomed in, or use arrow keys.');
+  let drag=null;
+  const finish=event=>{if(!drag||event.pointerId!==drag.id)return;drag=null;element.classList.remove('is-panning');if(element.hasPointerCapture(event.pointerId))element.releasePointerCapture(event.pointerId);};
+  element.addEventListener('pointerdown',event=>{
+    if(event.button!==0||!event.isPrimary||!enabled()||event.target.closest('button,input,select,textarea'))return;
+    const view=getView();if(view.w>=1200)return;
+    const rect=element.getBoundingClientRect();
+    drag={id:event.pointerId,x:event.clientX,y:event.clientY,view:{...view},width:rect.width,height:rect.height};
+    element.setPointerCapture(event.pointerId);element.classList.add('is-panning');element.focus({preventScroll:true});event.preventDefault();
+  });
+  element.addEventListener('pointermove',event=>{
+    if(!drag||event.pointerId!==drag.id)return;
+    updateView({...drag.view,x:Math.max(0,Math.min(1200-drag.view.w,drag.view.x-(event.clientX-drag.x)*drag.view.w/drag.width)),y:Math.max(0,Math.min(700-drag.view.h,drag.view.y-(event.clientY-drag.y)*drag.view.h/drag.height))});
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(type=>element.addEventListener(type,finish));
+  element.addEventListener('keydown',event=>{
+    if(event.target!==element||!enabled())return;
+    const direction={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[event.key];if(!direction)return;
+    event.preventDefault();const view=getView();updateView({...view,x:Math.max(0,Math.min(1200-view.w,view.x+direction[0]*view.w*.1)),y:Math.max(0,Math.min(700-view.h,view.y+direction[1]*view.h*.1))});
+  });
+}
+enableMapPanning(worldMap,()=>camera,setCamera);
+
+function drawLocalMapDetails(context,{zoom,view}) {
+  if(zoom<2)return;
+  // Stable decorative terrain follows existing biome polygons; it adds no combat data.
+  studentWorld.cells.forEach((cell,index)=>{
+    if(!cell.land||cell.point[0]<view.x-35||cell.point[0]>view.x+view.w+35||cell.point[1]<view.y-35||cell.point[1]>view.y+view.h+35)return;
+    const biome=(cell.biome||biomeForCell(cell)).name.toLowerCase();
+    const random=seededRandom((studentWorld.seed+index*7919)>>>0);
+    context.save();context.beginPath();cell.polygon.forEach((p,i)=>i?context.lineTo(...p):context.moveTo(...p));context.closePath();context.clip();
+    for(let i=0;i<18;i++){
+      const x=cell.point[0]+(random()-.5)*30,y=cell.point[1]+(random()-.5)*30;
+      context.strokeStyle=/forest|taiga/.test(biome)?'#355d40':'#777458';context.fillStyle='#50794d';context.lineWidth=.35;
+      if(/forest|taiga/.test(biome)){context.beginPath();context.moveTo(x,y-2);context.lineTo(x-1.5,y+1.5);context.lineTo(x+1.5,y+1.5);context.closePath();context.fill();}
+      else if(/highland|mountain/.test(biome)||cell.elevation>.86){context.beginPath();context.moveTo(x-2,y+1);context.lineTo(x,y-2);context.lineTo(x+2,y+1);context.stroke();}
+      else if(zoom>=4){context.beginPath();context.moveTo(x,y);context.lineTo(x+.8,y-1);context.stroke();}
+    }context.restore();
+  });
+  studentWorld.countries.forEach(country=>(country.cities||[]).forEach(city=>{
+    if(city.capital)return;const [x,y]=city.position;
+    if(x<view.x||x>view.x+view.w||y<view.y||y>view.y+view.h)return;
+    const size=5/zoom;context.fillStyle='#73533c';context.fillRect(x-size/2,y-size/2,size,size);
+    if(zoom>=3){context.font=`${12/zoom}px sans-serif`;context.textAlign='left';context.lineWidth=3/zoom;context.strokeStyle='#fffdf3';context.strokeText(city.name,x+7/zoom,y,160/zoom);context.fillText(city.name,x+7/zoom,y,160/zoom);}
+  }));
+}
+function drawZoomMap() {
+  const canvas=document.getElementById('zoomMapCanvas');if(!canvas||!studentWorld)return;
+  const zoom=1200/camera.w;canvas.hidden=zoom<=1;worldCanvas.style.visibility=zoom>1?'hidden':'';
+  const label=document.getElementById('mapZoomLevel');if(label)label.textContent=`${zoom.toFixed(1)}× · ${zoom<2?'World view':zoom<4?'Regional view':'Local terrain view'}${zoom>=2?' · terrain symbols are illustrative':''}`;
+  if(zoom<=1)return;
+  const ctx=canvas.getContext('2d');ctx.save();ctx.clearRect(0,0,1200,700);ctx.scale(zoom,zoom);ctx.translate(-camera.x,-camera.y);drawWorldBase(ctx,{zoom,view:camera});ctx.restore();
+}
