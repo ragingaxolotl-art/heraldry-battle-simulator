@@ -159,3 +159,52 @@ async function showTacticalPreview(battle,scene){
   if(version!==tacticalPreviewVersion)return;
   preview.src=canvas.toDataURL('image/png');preview.alt=battlePictureDescription(scene);
 }
+
+// These routes show coalition action, not simulated one-to-one unit targeting.
+function battleFlowPaths(t) {
+  const height=tacticalMapHeight(t),middle=210+height/2;
+  const points=side=>t.formations.filter(f=>f.side===side).map((f,row,all)=>{
+    const lane=(height-90)/all.length,cy=278+row*lane+lane*.53,direction=side==='A'?1:-1,rear=side==='A'?112:1688;
+    const nodes=buildFormationLayout(f.formation,f.units).map(n=>{const d=maneuverDisplacement(f.maneuver,n,t.phase,t.round,t.roundCount||6);return {x:rear+direction*((n.x+d.x)*590),y:cy+(n.y+d.y)*Math.max(130,lane-100)*.5};});
+    const anchor=nodes.reduce((best,p)=>!best||Math.hypot(p.x-(rear+direction*590),p.y-cy)<Math.hypot(best.x-(rear+direction*590),best.y-cy)?p:best,null);
+    return {f,...(anchor||{x:side==='A'?690:1110,y:cy})};
+  });
+  const a=points('A'),b=points('B'),paths=[];
+  const add=(side,start,end,kind,curve=0)=>paths.push({side,kind,d:`M ${start.x} ${start.y} Q ${(start.x+end.x)/2} ${(start.y+end.y)/2+curve} ${end.x} ${end.y}`,x:end.x,y:end.y,impact:end.f?.units.some(u=>u.roundLost>0)||false});
+  if(t.phase==='outcome'){
+    [...a,...b].filter(p=>p.f.side!==t.winnerSide&&tacticalTotals([p.f]).remaining).forEach(p=>add(p.f.side,p,{x:p.f.side==='A'?190:1610,y:p.y},'retreat',45));
+  }else if(t.phase==='deployment'){
+    [...a,...b].forEach(p=>add(p.f.side,{x:p.f.side==='A'?230:1570,y:p.y},p,'deploy',-35));
+  }else{
+    // Shared junctions explicitly connect coalitions without inventing individual matchups.
+    const redHub={x:900,y:middle-35},blueHub={x:900,y:middle+35};
+    a.filter(p=>tacticalTotals([p.f]).remaining||p.f.units.some(u=>u.roundLost)).forEach(p=>add('A',p,redHub,'attack',-35));
+    b.forEach(p=>add('A',redHub,{...p},'attack',-35));
+    b.filter(p=>tacticalTotals([p.f]).remaining||p.f.units.some(u=>u.roundLost)).forEach(p=>add('B',p,blueHub,'counter',35));
+    a.forEach(p=>add('B',blueHub,{...p},'counter',35));
+  }
+  return paths;
+}
+let battleFlowId=0;
+function createBattleMotion(scene,picture) {
+  const t=scene.tactical,host=document.createElement('div');host.className='battle-motion';
+  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox',`0 0 1800 ${210+tacticalMapHeight(t)+390}`);svg.setAttribute('role','img');
+  svg.setAttribute('aria-label',t.phase==='combat'?'Red attacking coalition and blue defending coalition exchange attacks. Moving lines illustrate coalition action, not individual targets.':t.phase==='outcome'?'Surviving defeated forces retreat.':'Both coalitions move into position before combat.');
+  const make=(name,attrs,parent=svg)=>{const el=document.createElementNS(ns,name);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));parent.append(el);return el;};
+  const defs=make('defs',{}),id=++battleFlowId;
+  for(const [side,color] of [['A','#bf3529'],['B','#176aac']]){const marker=make('marker',{id:`flow-${id}-${side}`,viewBox:'0 0 12 12',refX:10,refY:6,markerWidth:4,markerHeight:4,orient:'auto'},defs);make('path',{d:'M 1 1 L 11 6 L 1 11 Z',fill:color},marker);}
+  battleFlowPaths(t).forEach((route,i)=>{
+    make('path',{d:route.d,fill:'none',stroke:'#fffdf2','stroke-width':13,'stroke-linecap':'round',opacity:.9});
+    const path=make('path',{d:route.d,fill:'none',stroke:route.side==='A'?'#bf3529':'#176aac','stroke-width':7,'stroke-linecap':'round','marker-end':`url(#flow-${id}-${route.side})`,class:`battle-flow ${route.kind}`});
+    path.style.animationDelay=`${-i*.3}s`;
+  });
+  if(t.phase==='combat')battleFlowPaths(t).filter(route=>route.impact).forEach(route=>{
+    make('circle',{cx:route.x,cy:route.y,r:22,fill:'none',stroke:'#a62f22','stroke-width':5,class:'battle-impact'});
+  });
+  const button=document.createElement('button');button.type='button';button.className='secondary-button battle-motion-toggle';
+  let paused=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+  const update=()=>{host.classList.toggle('motion-paused',paused);button.textContent=paused?'▶':'Ⅱ';button.setAttribute('aria-label',paused?'Play battle movement':'Pause battle movement');button.title=button.getAttribute('aria-label');};
+  button.addEventListener('click',()=>{paused=!paused;update();});update();
+  host.append(picture,svg,button);return host;
+}

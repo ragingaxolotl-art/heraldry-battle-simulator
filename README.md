@@ -67,3 +67,9 @@ Each country has three persistent, editable regiments with fictional generals, s
 Cities, notes, army names, deployment choices, and surviving unit totals persist in browser storage and **Download My Progress** backups. Earlier saves receive generated cities and regiment identities on upgrade. Battle replay never applies losses again.
 
 Run `node tests/campaign.cjs` for settlement import, persistent identity, and troop conservation. Run `node tests/browser-campaign.cjs` against a local server with `BATTLE_URL`, `PLAYWRIGHT_MODULE`, and `BROWSER_PATH` as needed for editing, PNG downloads, save/restore, battles, deployment choices, mobile layout, and Azgaar settlement checks. Run `node tests/azgaar.cjs` first to create its import fixture.
+
+## Simple classroom edition
+
+The visible battle report shows countries, winner, troops sent/lost/returned by type, national reserves, and a short fictional story. Cities and map navigation remain. Formation controls, animated action lines, and regiment management are not part of this edition. Saved regiment data is retained for compatibility but does not restrict commitments.
+
+The advanced version was preserved before simplification at `../saved-versions/advanced-battles-2026-10-09.zip`. Extract it into a separate directory to revisit formations, motion, regiments, and generals. Browser progress is stored separately: use Download My Progress to back up your own world. The simple edition browser check is `tests/browser-simple.cjs`; advanced report/roster browser tests describe the archived interface.

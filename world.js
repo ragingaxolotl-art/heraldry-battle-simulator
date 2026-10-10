@@ -198,6 +198,7 @@ function showBattle(battle) {
   // Start paused so students can capture and study each scene.
 }
 function drawBattleArrows() {
+  document.getElementById('battleArrows').replaceChildren();return; // Simple edition has no action lines.
   const svg=document.getElementById('battleArrows');svg.innerHTML='<defs><marker id="arrowhead" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L7,3.5 L0,7 Z" fill="context-stroke"/></marker></defs>';
   if(!activeBattle)return;
   const scene=activeBattle.scenes?.[playbackIndex];
@@ -383,7 +384,7 @@ document.getElementById('importAzgaar').addEventListener('change',async event=>{
 });
 
 
-async function renderAfterAction() {
+async function renderDetailedAfterAction() {
   const host=document.getElementById('afterActionBlocks');if(!host)return;
   const version=++reportRenderVersion;host.replaceChildren();host.hidden=!studentWorld.history.length;
   const intro=document.createElement('h2');intro.textContent='Your battle reports';host.append(intro);
@@ -422,7 +423,7 @@ async function renderAfterAction() {
         const tacticalImage=document.createElement('img');tacticalImage.className='tactical-battle-image';tacticalImage.alt=battlePictureDescription(scene);tacticalImage.src=tacticalCanvas.toDataURL('image/png');
         const tacticalDownload=document.createElement('button');tacticalDownload.type='button';tacticalDownload.className='secondary-button';tacticalDownload.textContent='Download battle picture';
         tacticalDownload.addEventListener('click',()=>tacticalCanvas.toBlob(blob=>{if(blob)downloadBlob(blob,`battle-${battleIndex+1}-scene-${sceneIndex+1}-tactical.png`);},'image/png'));
-        block.append(tacticalTitle,tacticalImage,tacticalDownload);
+        block.append(tacticalTitle,createBattleMotion(scene,tacticalImage),tacticalDownload);
       }
       const text=document.createElement('p');text.className='battle-narrative';text.textContent=scene.text;block.append(text);
       if(scene.facts.length){const label=document.createElement('h4');label.textContent='Facts for your own table';block.append(label);const facts=document.createElement('div');facts.className='battle-facts';scene.facts.forEach(f=>{const p=document.createElement('p');p.textContent=f;if(f.includes(' — attacking coalition')||f.includes(' — defending coalition'))p.className='fact-country';facts.append(p);});block.append(facts);}
@@ -505,4 +506,31 @@ function drawZoomMap() {
   const label=document.getElementById('mapZoomLevel');if(label)label.textContent=`${zoom.toFixed(1)}× · ${zoom<2?'World view':zoom<4?'Regional view':'Local terrain view'}${zoom>=2?' · terrain symbols are illustrative':''}`;
   if(zoom<=1)return;
   const ctx=canvas.getContext('2d');ctx.save();ctx.clearRect(0,0,1200,700);ctx.scale(zoom,zoom);ctx.translate(-camera.x,-camera.y);drawWorldBase(ctx,{zoom,view:camera});ctx.restore();
+}
+
+function renderAfterAction() {
+  const host=document.getElementById('afterActionBlocks');if(!host)return;
+  ++reportRenderVersion;host.replaceChildren();host.hidden=!studentWorld.history.length;
+  const el=(tag,text,className)=>{const node=document.createElement(tag);node.textContent=text;if(className)node.className=className;return node;};
+  host.append(el('h2','Battle results'));
+  for(const [i,battle] of [...studentWorld.history].reverse().entries()) {
+    const block=el('article','','simple-battle-result');block.append(el('h3',`Battle ${i+1} · ${battle.title}`),el('p',`${battle.winner} wins`,'winner'));
+    const outcome=battle.scenes?.find(s=>s.tactical?.phase==='outcome');
+    if(outcome){
+      const t=outcome.tactical,attackers=t.formations.filter(f=>f.side==='A').map(f=>f.name),defenders=t.formations.filter(f=>f.side==='B').map(f=>f.name);
+      block.append(el('p',`${attackers.join(' and ')} attacked ${defenders.join(' and ')}.`));
+      block.append(el('p',`As the dust settled, the banners of ${battle.winner} marked the victory. Messengers carried the news home while the survivors regrouped. Troops held in reserve stayed out of the fighting.`,'battle-narrative'));
+      const countries=el('div','','simple-country-results');
+      t.formations.forEach(f=>{
+        const card=el('section','','simple-country-result'),totals=tacticalTotals([f]);
+        card.append(el('h4',f.name),el('p',`${f.side===t.winnerSide?'Won':'Lost'} · ${f.side==='A'?'Attacker':'Defender'}`));
+        const list=el('ul','');f.units.forEach(u=>list.append(el('li',`${u.label}: ${u.committed.toLocaleString()} sent · ${u.lost.toLocaleString()} lost · ${u.remaining.toLocaleString()} returned`)));card.append(list,el('p',`${totals.reserve.toLocaleString()} troops held in reserve.`));countries.append(card);
+      });block.append(countries);
+    }else{
+      const old=battle.scenes?.find(s=>s.heading?.startsWith('Outcome'));
+      block.append(el('p',old?.text||'Earlier saved battle.'));
+      if(old?.facts)old.facts.forEach(f=>block.append(el('p',f)));
+    }
+    host.append(block);
+  }
 }

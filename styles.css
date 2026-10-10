@@ -642,3 +642,24 @@ dialog p { line-height: 1.6; }
 #mapScene { transition:none; }
 
 .map-shield { transform:translate(-50%,-50%) scale(var(--marker-scale,1)); }
+
+.battle-motion { position:relative; }
+.battle-motion > .tactical-battle-image { display:block; width:100%; margin:0; }
+.battle-motion > svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.battle-motion-toggle { position:absolute; right:12px; top:12px; min-width:44px; min-height:44px; }
+.battle-flow { stroke-dasharray:22 15; animation:battle-flow 1.2s linear infinite; }
+.battle-flow.counter { animation-delay:-.6s; }
+.battle-impact { animation:battle-impact 1.4s ease-out infinite; transform-box:fill-box; transform-origin:center; }
+.motion-paused .battle-flow,.motion-paused .battle-impact { animation-play-state:paused; }
+@keyframes battle-flow { to { stroke-dashoffset:-74; } }
+@keyframes battle-impact { from { opacity:1; transform:scale(.65); } to { opacity:.15; transform:scale(1.5); } }
+
+/* Simple classroom edition; advanced controls are preserved in the saved copy. */
+.formation-controls { display:none; }
+.simple-country-results { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
+.simple-country-result { padding:18px; border:1px solid #d4dbcf; border-radius:10px; background:#fffdf6; }
+.simple-country-result h4 { margin:0 0 12px; font-size:20px; }
+.simple-country-result li { margin:8px 0; line-height:1.5; }
+.simple-country-result ul { padding-left:20px; }
+.simple-battle-result { padding:24px; margin:20px 0; border:1px solid #c9d5c5; border-radius:12px; background:#f6f7ee; }
+.simple-battle-result .winner { font-size:24px; font-weight:700; color:#255339; }

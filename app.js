@@ -122,7 +122,7 @@ function createCountryCards() {
 
     const deployment = document.createElement('fieldset');
     deployment.className = 'wide-field deployment';
-    deployment.innerHTML = '<legend>Commit to next battle</legend><p>Choose how many of each type to send if this nation joins. Blank means all troops in the regiments checked on Countries &amp; cities. The rest stay safely in reserve.</p>';
+    deployment.innerHTML = '<legend>Commit to next battle</legend><p>Choose how many of each type to send if this nation joins. Blank means all available troops. The rest stay safely in reserve.</p>';
     UNIT_TYPES.forEach(unit => {
       const label = document.createElement('label');
       label.textContent = unit.label;

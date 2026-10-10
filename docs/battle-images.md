@@ -45,3 +45,5 @@ Maneuvers change depicted progress and arrows between scenes; they do not influe
 ## Narration and action badges
 
 New battles narrate all 84 formation/maneuver combinations from saved round counts. Map badges identify deployment, engagement, recorded losses, victory, defeat/withdrawal, and loss of the committed force. Reserves remain separate. See [the audit](AUDIT.md) for verification and remaining limitations.
+
+Battle reports now overlay moving coalition lines on each tactical picture. Deployment lines move into position; combat lines flow red toward the defending coalition and blue back toward the attackers. Rings pulse only at formations with recorded losses in that round. Outcome lines show surviving defeated forces withdrawing. The shared junction represents coalition engagement, not recorded one-to-one targeting. Pause/play is available, with animation initially paused for reduced-motion preferences. PNG downloads remain still pictures; the animation is in the report.

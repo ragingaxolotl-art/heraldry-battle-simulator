@@ -55,3 +55,10 @@ for(const bad of [null,{...result.battle.scenes[0].tactical,formations:[null]},{
 vm.runInContext(`(()=>{const save=generateStudentWorld(42,GRIA_TEMPLATE);save.history=[{title:'Broken replay',winner:'A',events:[],arrows:[null]}];if(validateWorldSave(save).history.length)throw Error('Malformed replay retained');})()`,context);
 vm.runInContext(`(()=>{for(const layout of FORMATIONS)for(const maneuver of MANEUVERS){const f={name:'Test Nation',side:'A',formation:layout.id,maneuver:maneuver.id,units:UNIT_TYPES.map(u=>({...u,committed:10,remaining:8,lost:2,reserve:90,roundLost:1}))};const t={phase:'combat',winnerSide:'B'};const text=narrateFormation(f,t);if(!text.includes(layout.name.toLowerCase())||!text.includes(maneuver.name.toLowerCase())||!text.includes('4 units were lost this round'))throw Error('Missing narration');if(formationStatus(f,{...t,phase:'outcome'}).label!=='Defeat · withdrawal')throw Error('Wrong defeat');f.units.forEach(u=>{u.remaining=0;u.lost=10;});if(formationStatus(f,{...t,phase:'outcome',winnerSide:'A'}).label!=='Force lost')throw Error('Destroyed winning contingent mislabeled');}})()`,context);
 console.log('Passed: 84 narrated combinations, defeat and destroyed contingents, null replay recovery.');
+vm.runInContext(`(()=>{
+ const t=${JSON.stringify(result.battle.scenes[0].tactical)};
+ if(!battleFlowPaths(t).every(p=>p.kind==='deploy'))throw Error('Deployment depicts fighting');
+ t.phase='combat';const routes=battleFlowPaths(t);if(!routes.some(p=>p.side==='A'&&p.kind==='attack')||!routes.some(p=>p.side==='B'&&p.kind==='counter'))throw Error('Missing coalition direction');
+ t.phase='outcome';if(!battleFlowPaths(t).every(p=>p.side!==t.winnerSide&&p.kind==='retreat'))throw Error('Winner retreats');
+})()`,context);
+console.log('Passed: deployment, attack/counterattack, and loser-only retreat animation routes.');

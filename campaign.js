@@ -4,40 +4,10 @@ const atlasCanvas=document.getElementById('atlasCanvas');
 const atlasBase=document.createElement('canvas');atlasBase.width=1200;atlasBase.height=700;
 const ATLAS_COLORS=['#b74432','#235e91','#775295','#297252','#9b6315'];
 globalThis.campaignReady=true;
-function enrichCampaignCountries(countries) {
-  if(!globalThis.campaignReady||!studentWorld||loadingWorld)return countries;
-  return countries.map(data=>{
-    const country=studentWorld.countries[studentWorld.selected[data.index]];
-    ensureCountryCampaign(studentWorld,country);
-    return campaignForce(country,data);
-  });
-}
-function settleCampaignBattle(model) {
-  model.regimentRecords=model.combat.casualties.flatMap(record=>{
-    const country=studentWorld.countries[studentWorld.selected[record.index]],force=model.countries.find(c=>c.index===record.index);
-    return applyRegimentLosses(country,force,record).map(r=>({...r,countryIndex:record.index,countryName:record.name,side:record.side}));
-  });
-}
-function attachCampaignReport(battle,model) {
-  const records=model.regimentRecords||[];
-  if(!records.length)return;
-  const opening=battle.scenes[0],outcome=battle.scenes.find(s=>s.heading.startsWith('Outcome'))||battle.scenes.at(-1);
-  const traitStory={Steady:'kept the companies together',Cautious:'watched for a safe route back',Bold:'called for a determined advance',Inspiring:'rallied the troops beneath their banner',Resourceful:'adapted the plan to the ground ahead'};
-  const byCountry=new Map();
-  records.forEach(r=>{if(!byCountry.has(r.countryIndex))byCountry.set(r.countryIndex,[]);byCountry.get(r.countryIndex).push(r);});
-  byCountry.forEach(roster=>{
-    opening.facts.push(`${roster[0].countryName} — ${roster.map(r=>`${r.name}, General ${r.general} (${r.trait.toLowerCase()})`).join('; ')}.`);
-    const lead=roster[0];opening.text+=` For ${lead.countryName}, General ${lead.general} ${traitStory[lead.trait]||traitStory.Steady}.`;
-  });
-  records.forEach(r=>{
-    const total=CAMPAIGN_KEYS.reduce((n,k)=>n+r.units[k],0),lost=CAMPAIGN_KEYS.reduce((n,k)=>n+r.losses[k],0);
-    outcome.facts.push(`${r.countryName} · ${r.name} · General ${r.general}: ${total.toLocaleString()} committed; ${lost.toLocaleString()} lost; ${(total-lost).toLocaleString()} surviving${total===lost?'; committed force wiped out':''}.`);
-    UNIT_TYPES.filter(u=>r.units[u.key]>0).forEach(u=>outcome.facts.push(`${r.name} — ${u.label}: ${r.units[u.key].toLocaleString()} committed, ${r.losses[u.key].toLocaleString()} lost, ${(r.units[u.key]-r.losses[u.key]).toLocaleString()} surviving.`));
-  });
-  const regimentReport=records.map(r=>`${r.countryName} · ${r.name} · General ${r.general}: ${CAMPAIGN_KEYS.reduce((n,k)=>n+r.units[k],0)} committed, ${CAMPAIGN_KEYS.reduce((n,k)=>n+r.losses[k],0)} lost, ${CAMPAIGN_KEYS.reduce((n,k)=>n+r.units[k]-r.losses[k],0)} surviving.`).join('\n');
-  lastReport+='\n\nRegiments and fictional generals:\n'+regimentReport;
-  battle.events.push(...records.map(r=>`${r.name} of ${r.countryName}, commanded by General ${r.general}: ${CAMPAIGN_KEYS.reduce((n,k)=>n+r.losses[k],0)} units lost.`));
-}
+// Simple edition uses national commitments; saved regiment choices do not limit battles.
+function enrichCampaignCountries(countries) {return countries;}
+function settleCampaignBattle() {}
+function attachCampaignReport() {}
 function campaignElement(tag,text,className) {const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(className)el.className=className;return el;}
 function campaignInput(host,labelText,value,onInput,{max=80,multiline=false}={}) {
   const label=campaignElement('label',labelText),input=document.createElement(multiline?'textarea':'input');
@@ -140,6 +110,8 @@ function renderAtlasEditors() {
   if(studentWorld.background){const move=campaignElement('button','Move this city','secondary-button');move.type='button';move.addEventListener('click',()=>{movingAtlasCity=true;document.getElementById('atlasMapNote').textContent='Click the map to place this city. Press Escape to cancel.';document.getElementById('atlasMap').focus();});host.append(move);}
 }
 function renderRegiments() {
+  return; // Advanced roster UI is retained in the archived edition.
+
   const country=activeAtlasCountry(),host=document.getElementById('regimentCards');host.replaceChildren();
   document.getElementById('armyTitle').textContent=`${country.name} · regiments & fictional generals`;
   country.regiments.forEach(r=>{
@@ -156,7 +128,7 @@ function renderRegiments() {
 }
 function updateCampaignDeploymentSummaries() {
   if(loadingWorld)return;
-  getCountries().forEach((data,i)=>{const total=CAMPAIGN_KEYS.reduce((n,k)=>n+data[k],0),committed=CAMPAIGN_KEYS.reduce((n,k)=>n+(data.regimentCommitment?.[k]??data[k]),0);const summary=cards()[i].querySelector('.deployment-summary');if(summary)summary.textContent=`${committed.toLocaleString()} committed · ${(total-committed).toLocaleString()} in reserve. Only checked regiments from Countries & cities can join.`;});
+  getCountries().forEach((data,i)=>{const total=CAMPAIGN_KEYS.reduce((n,k)=>n+data[k],0),committed=CAMPAIGN_KEYS.reduce((n,k)=>n+Math.min(data[k],data.commitment?.[k]??data[k]),0);const summary=cards()[i].querySelector('.deployment-summary');if(summary)summary.textContent=`${committed.toLocaleString()} troops selected · ${(total-committed).toLocaleString()} held in reserve.`;});
 }
 function renderArmySummary() {
   const c=activeAtlasCountry(),total=c.regiments.reduce((n,r)=>n+CAMPAIGN_KEYS.reduce((s,k)=>s+r.units[k],0),0),ready=c.regiments.filter(r=>r.selected).reduce((n,r)=>n+CAMPAIGN_KEYS.reduce((s,k)=>s+r.units[k],0),0);

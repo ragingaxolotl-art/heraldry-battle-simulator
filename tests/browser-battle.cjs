@@ -34,6 +34,16 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
   await page.locator('.formation-choice').nth(4).selectOption('refused');
   if(await page.locator('#battleCountryChoices').count()){await page.locator('#battleCountryChoices button').nth(0).click();await page.locator('#battleCountryChoices button').nth(1).click();}else await page.locator('#battleButton').click();
   await page.waitForFunction(()=>document.querySelectorAll('.tactical-battle-image').length===studentWorld.history[0]?.scenes.length);
+  await page.locator('.battle-motion').nth(2).screenshot({path:process.env.BATTLE_MOTION_PICTURE||'/tmp/battle-motion-preview.png'});
+  const flow=page.locator('.battle-flow').first();
+  const offset=await flow.evaluate(el=>getComputedStyle(el).strokeDashoffset);
+  await page.waitForTimeout(180);
+  assert.notEqual(await flow.evaluate(el=>getComputedStyle(el).strokeDashoffset),offset,'Battle lines must visibly move');
+  await page.locator('.battle-motion-toggle').first().click();
+  assert.equal(await flow.evaluate(el=>getComputedStyle(el).animationPlayState),'paused');
+  await page.locator('.battle-motion-toggle').first().click();
+  assert.equal(await flow.evaluate(el=>getComputedStyle(el).animationPlayState),'running');
+
   const check=await page.evaluate(()=>{
    const battle=studentWorld.history[0],final=battle.scenes.at(-1).tactical;
    return {scenes:battle.scenes.length,images:document.querySelectorAll('.battle-block img').length,formations:final.formations,countries:getCountries(),history:JSON.stringify(studentWorld.history),valid:battle.scenes.every(s=>validTacticalScene(s.tactical))};
