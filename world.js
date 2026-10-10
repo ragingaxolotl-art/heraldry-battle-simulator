@@ -508,13 +508,24 @@ function drawZoomMap() {
   const ctx=canvas.getContext('2d');ctx.save();ctx.clearRect(0,0,1200,700);ctx.scale(zoom,zoom);ctx.translate(-camera.x,-camera.y);drawWorldBase(ctx,{zoom,view:camera});ctx.restore();
 }
 
-function renderAfterAction() {
+async function renderAfterAction() {
   const host=document.getElementById('afterActionBlocks');if(!host)return;
-  ++reportRenderVersion;host.replaceChildren();host.hidden=!studentWorld.history.length;
+  const version=++reportRenderVersion;host.replaceChildren();host.hidden=!studentWorld.history.length;
   const el=(tag,text,className)=>{const node=document.createElement(tag);node.textContent=text;if(className)node.className=className;return node;};
   host.append(el('h2','Battle results'));
   for(const [i,battle] of [...studentWorld.history].reverse().entries()) {
     const block=el('article','','simple-battle-result');block.append(el('h3',`Battle ${i+1} · ${battle.title}`),el('p',`${battle.winner} wins`,'winner'));
+    host.append(block);
+    const closeup=await renderBattleCloseup(battle);
+    if(version!==reportRenderVersion)return;
+    if(closeup){
+      const figure=document.createElement('figure');figure.className='battle-closeup';
+      const image=document.createElement('img');image.src=closeup.toDataURL('image/png');image.alt=`Close-up of ${battle.title}: participating shields and arrows point to the battle site.`;
+      figure.append(image,el('figcaption','Battle location · shields show who fought here.'));
+      const download=el('button','Download battle close-up','secondary-button');download.type='button';
+      download.addEventListener('click',()=>closeup.toBlob(blob=>{if(blob)downloadBlob(blob,`battle-${i+1}-close-up.png`);},'image/png'));
+      block.append(figure,download);
+    }else block.append(el('p','This older battle has no saved map picture. New battles include a close-up.','map-help'));
     const outcome=battle.scenes?.find(s=>s.tactical?.phase==='outcome');
     if(outcome){
       const t=outcome.tactical,attackers=t.formations.filter(f=>f.side==='A').map(f=>f.name),defenders=t.formations.filter(f=>f.side==='B').map(f=>f.name);

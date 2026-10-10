@@ -666,3 +666,7 @@ dialog p { line-height: 1.6; }
 
 .simple-country-result h5 { font-size:17px; margin:20px 0 8px; }
 .troop-performance-summary { font-weight:600; }
+
+.battle-closeup { margin:18px 0 12px; }
+.battle-closeup img { display:block; width:100%; height:auto; border:1px solid #c9d5c5; border-radius:10px; }
+.battle-closeup figcaption { margin-top:8px; color:#405348; font-size:14px; }
