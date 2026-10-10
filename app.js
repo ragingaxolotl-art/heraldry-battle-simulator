@@ -455,6 +455,8 @@ function runBattle() {
   const chaos = Number(chaosLevel.value);
   const sideA = scoreSide(countries, "A");
   const sideB = scoreSide(countries, "B");
+  const battlefield=typeof chooseMapBattlefield==='function'?chooseMapBattlefield(defender):null;
+  if(battlefield)document.querySelector("#terrain").value=battlefield.terrain;
   const combat = simulateCombat(countries, chaos, document.querySelector("#terrain").value);
   const {finalA, finalB, winnerSide} = combat;
   const upset = {happened: winnerSide !== (sideA.baseWithSynergy >= sideB.baseWithSynergy ? "A" : "B"), reason: "Terrain and battlefield attrition overcame the initial strength advantage."};
@@ -469,6 +471,7 @@ function runBattle() {
   const total = Math.max(finalA + finalB, 1);
 
   const battleModel = {
+    battlefield,
     combat,
     countries,
     sideA,

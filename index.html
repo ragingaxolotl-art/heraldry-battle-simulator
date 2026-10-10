@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
   <header class="app-header">
@@ -77,7 +77,8 @@
       <div id="countryGrid" class="country-grid"></div>
     </section>
 
-    <section class="setup-bar" aria-labelledby="battle-settings-title">
+    <section class="simple-battle"><p class="eyebrow">3 · Start a battle</p><h2>Choose two countries at odds</h2><p>Pick the attacking country, then its opponent. The battle starts when you choose the second country.</p><div id="battleCountryChoices" class="action-row"></div><p id="battlePickStatus" aria-live="polite">Choose the attacking country.</p><button id="cancelBattlePick" class="secondary-button" type="button" hidden>Choose again</button></section>
+    <section class="setup-bar" hidden aria-labelledby="battle-settings-title">
       <div>
         <p class="eyebrow">3 · Resolve one battle</p><h2 id="battle-settings-title">Battle Settings</h2>
         <p>Choose two countries to battle. Their allies may answer the call.</p>
@@ -107,7 +108,7 @@
     </section>
 
     <section class="battle-controls" aria-label="Run the battle">
-      <button id="battleButton" type="button" class="primary-button">Resolve One Battle</button>
+      <button id="battleButton" hidden type="button" class="primary-button">Resolve One Battle</button>
       <button id="copyButton" type="button" class="secondary-button" disabled>Copy Report</button>
       <button id="downloadButton" type="button" class="secondary-button" disabled>Download Report</button>
       <p id="formMessage" class="form-message" role="status"></p>
@@ -209,10 +210,10 @@
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=13"></script>
-  <script src="azgaar.js?v=13"></script>
-  <script src="app.js?v=13"></script>
-  <script src="battle-picture.js?v=13"></script>
-  <script src="world.js?v=13"></script>
+  <script src="world-core.js?v=14"></script>
+  <script src="azgaar.js?v=14"></script>
+  <script src="app.js?v=14"></script>
+  <script src="battle-picture.js?v=14"></script>
+  <script src="world.js?v=14"></script>
 </body>
 </html>

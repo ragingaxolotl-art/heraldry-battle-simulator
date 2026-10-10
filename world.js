@@ -8,6 +8,7 @@ let studentWorld, loadingWorld = false, saveTimer, playbackTimer, activeBattle, 
 let pendingAction = null;
 let backgroundImage = null;
 let reportRenderVersion=0;
+let pickedAttacker=null;
 let camera = {x:0,y:0,w:1200,h:700};
 const cards = () => [...grid.querySelectorAll('.country-card')];
 function freshSeed() { return crypto.getRandomValues(new Uint32Array(1))[0]; }
@@ -34,7 +35,7 @@ function saveWorld() {
   try { localStorage.setItem(STORAGE_KEY,JSON.stringify(compactWorld())); worldMessage('Saved in this browser. Download My Progress to keep a backup or change computers.'); }
   catch { worldMessage('Browser storage is full or unavailable. Use Download My Progress to save your work.'); }
 }
-function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveWorld(); drawWorld(); renderMarkers(); refreshRegionChoices(); updateNeutrals(); },250); }
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveWorld(); drawWorld(); renderMarkers(); refreshRegionChoices(); updateNeutrals(); renderBattleChoices(); },250); }
 function clearBattle() {
   clearInterval(playbackTimer); activeBattle = null; playbackIndex = -1;
   document.getElementById('battleArrows').replaceChildren();
@@ -46,6 +47,7 @@ function clearBattle() {
   results.classList.add('hidden'); lastReport=''; copyButton.disabled=true; downloadButton.disabled=true;
 }
 function applyWorld() {
+  pickedAttacker=null;document.getElementById('cancelBattlePick').hidden=true;document.getElementById('battlePickStatus').textContent='Choose the attacking country.';
   loadingWorld = true; clearBattle(); createCountryCards();
   cards().forEach((card,i) => {
     const country = studentWorld.countries[studentWorld.selected[i]];
@@ -79,7 +81,7 @@ function applyWorld() {
   document.getElementById('worldTitle').textContent=`Your World · ${studentWorld.seed.toString(36).toUpperCase()}`;
   loadingWorld=false; loadBackground(); drawWorld(); renderMarkers(); renderHistory();
   renderBiomeKey();
-  updateNeutrals();renderAfterAction();
+  updateNeutrals();renderBattleChoices();renderAfterAction();
 }
 function updateNeutrals() {
   cards().forEach((card,i)=>{const names=cards().filter((_,j)=>j!==i&&!alliances.has(allianceKey(i,j))&&!enemies.has(allianceKey(i,j))).map(c=>c.querySelector('.country-name').value);card.querySelector('.neutral-list').textContent=`Neutral: ${names.join(', ') || 'None'}`;});
@@ -157,7 +159,7 @@ function recordMapBattle(model) {
   captureWorld();
   const attacker=Number(document.getElementById('sideAName').value),defender=Number(document.getElementById('sideBName').value);
   const position=index=>[...studentWorld.countries[studentWorld.selected[index]].position];
-  const target=position(defender), arrows=[];
+  const target=model.battlefield?.point || position(defender), arrows=[];
   const events=[`${model.sideAName} attacked ${model.sideBName} at ${model.sideBName}'s marked position. Battlefield: ${document.getElementById('terrain').selectedOptions[0].textContent}.`];
   events.push(...[...document.querySelectorAll("#allyResponses li")].map(li=>li.textContent));
   model.countries.forEach(country=>{if(!country.side||!armySize(country)||country.index===defender)return;
@@ -267,11 +269,12 @@ function makeBattleScenes(model,position,target,arrows) {
   const overview={x:0,y:0,w:1200,h:700};
   const profiles=model.countries.filter(c=>c.side).map(c=>`${c.name}: ${armySize(c).toLocaleString()} committed units; ${Object.values(c.reserves||{}).reduce((n,v)=>n+v,0).toLocaleString()} held in reserve`);
   const scenes=[{heading:`${model.sideAName} against ${model.sideBName}`,text:`The two coalitions prepare for battle. ${model.countries.filter(c=>c.side==='A').map(c=>c.name).join(', ')} face ${model.countries.filter(c=>c.side==='B').map(c=>c.name).join(', ')}.`,view:overview,facts:profiles}];
+  if(model.battlefield){scenes[0].text+=' '+model.battlefield.description;scenes[0].facts.push(model.battlefield.description);}
   const diplomacy=[...document.querySelectorAll('#allyResponses li')].map(li=>li.textContent);
   scenes.push({heading:'Alliances and decisions',text:diplomacy.join(' '),view:overview,facts:[]});
   const details=model.combat.roundDetails || [];
   details.forEach((round,i)=>{
-    const progress=.45+.5*(i/Math.max(1,details.length-1));const point=[start[0]+(target[0]-start[0])*progress,start[1]+(target[1]-start[1])*progress];
+    const point=[...target];
     const phase=i===0?'Opening clash':i===details.length-1?'Final engagement':'Continued engagement';
     let text=`${phase} on the approach to ${model.sideBName}. ${round.losses.A===round.losses.B?'Both coalitions suffered equal losses':`${round.losses.A>round.losses.B?model.sideAName:model.sideBName}'s coalition suffered heavier losses`}. ${model.sideAName} lost ${round.losses.A.toLocaleString()} units, while ${model.sideBName} lost ${round.losses.B.toLocaleString()}. ${round.remaining.A&&round.remaining.B?'Both sides reorganized their surviving forces.':'One coalition had no fighting units remaining when this exchange ended.'}`;
     const beat=[
@@ -282,7 +285,7 @@ function makeBattleScenes(model,position,target,arrows) {
       'The long engagement left both commands weighing the cost of continuing. Messengers brought new counts from the formations, and the remaining units carried the burden of the next exchange.',
       'The final exchange settled the balance of the field. Commanders assessed the surviving formations and the ground ahead as the fighting reached its conclusion.'
     ][i%6];
-    text += ' '+beat;
+    text += ' '+beat+' '+(model.battlefield?.description || '');
     const unitFacts=(round.countries||[]).flatMap(c=>[`${c.name} — ${c.side==='A'?'attacking':'defending'} coalition`,...c.units.map(u=>`${u.label}: ${u.lost.toLocaleString()} lost this round; ${u.remaining.toLocaleString()} remain.`)]);
     scenes.push({heading:`Round ${round.round} · ${phase}`,text,location:point,view:focusView(point),facts:[...unitFacts,`${model.sideAName} coalition — lost ${round.losses.A.toLocaleString()}; ${round.remaining.A.toLocaleString()} remain`,`${model.sideBName} coalition — lost ${round.losses.B.toLocaleString()}; ${round.remaining.B.toLocaleString()} remain`]});
   });
@@ -406,3 +409,20 @@ async function renderAfterAction() {
   }
 }
 function reportImage(src){return new Promise(resolve=>{if(!src){resolve(null);return;}const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=src;});}
+
+function chooseMapBattlefield(defender) {
+  const country=studentWorld.countries[studentWorld.selected[defender]];
+  if(studentWorld.background)return {point:[...country.position],terrain:'plains',description:`Battle location: ${country.name}'s marker on the uploaded picture. This PNG has no readable biome or elevation data, so neutral open-ground rules apply.`};
+  const land=studentWorld.cells.filter(c=>c.land&&c.country===country.id);
+  const cell=(land.length?land:studentWorld.cells.filter(c=>c.land)).reduce((best,c)=>!best||Math.hypot(c.point[0]-country.position[0],c.point[1]-country.position[1])<Math.hypot(best.point[0]-country.position[0],best.point[1]-country.position[1])?c:best,null);
+  const biome=(cell.biome||biomeForCell(cell)).name;
+  const hills=studentWorld.azgaar?cell.elevation>=.5:cell.elevation>.86;
+  return {point:[...cell.point],terrain:hills?'hills':'plains',description:`Battle location: ${country.name}, ${biome.toLowerCase()} near its marker. ${hills?'Elevated ground gives the defenders a 15% terrain advantage.':'Open-ground combat rules apply; no elevation bonus.'} Biome and elevation come from ${studentWorld.azgaar?'the imported Azgaar map':'this generated map'}.`};
+}
+function renderBattleChoices() {
+  const host=document.getElementById('battleCountryChoices');if(!host)return;host.replaceChildren();
+  studentWorld.selected.forEach((id,i)=>{const c=studentWorld.countries[id],button=document.createElement('button');button.type='button';button.className='secondary-button';button.textContent=c.name;button.disabled=pickedAttacker===i;button.setAttribute('aria-label',`${pickedAttacker===null?'Attack with':'Fight against'} ${c.name}`);
+    button.addEventListener('click',()=>{if(pickedAttacker===null){pickedAttacker=i;document.getElementById('battlePickStatus').textContent=`${c.name} will attack. Choose its opponent to start.`;document.getElementById('cancelBattlePick').hidden=false;renderBattleChoices();return;}
+      document.getElementById('sideAName').value=String(pickedAttacker);document.getElementById('sideBName').value=String(i);pickedAttacker=null;document.getElementById('cancelBattlePick').hidden=true;runBattle();document.getElementById('battlePickStatus').textContent=formMessage.textContent;renderBattleChoices();});host.append(button);});
+}
+document.getElementById('cancelBattlePick').addEventListener('click',()=>{pickedAttacker=null;document.getElementById('cancelBattlePick').hidden=true;document.getElementById('battlePickStatus').textContent='Choose the attacking country.';renderBattleChoices();});
