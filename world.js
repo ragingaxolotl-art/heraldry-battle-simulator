@@ -519,7 +519,10 @@ function renderAfterAction() {
     if(outcome){
       const t=outcome.tactical,attackers=t.formations.filter(f=>f.side==='A').map(f=>f.name),defenders=t.formations.filter(f=>f.side==='B').map(f=>f.name);
       block.append(el('p',`${attackers.join(' and ')} attacked ${defenders.join(' and ')}.`));
-      block.append(el('p',`As the dust settled, the banners of ${battle.winner} marked the victory. Messengers carried the news home while the survivors regrouped. Troops held in reserve stayed out of the fighting.`,'battle-narrative'));
+      const decisions=simpleDiplomacyEvents(battle);
+      if(decisions.length){block.append(el('h4','Allies & decisions'));const list=el('ul','');list.className='simple-diplomacy';decisions.forEach(text=>list.append(el('li',text)));block.append(list);}
+      block.append(el('h4','The battlefield story'),el('p','Fictional battlefield fun; the troop counts below are the actual simulation results.','map-help'));
+      simpleBattleStory(battle,t).forEach(text=>block.append(el('p',text,'battle-narrative')));
       const countries=el('div','','simple-country-results');
       t.formations.forEach(f=>{
         const card=el('section','','simple-country-result'),totals=tacticalTotals([f]);
