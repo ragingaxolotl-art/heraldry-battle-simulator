@@ -527,8 +527,12 @@ function renderAfterAction() {
       t.formations.forEach(f=>{
         const card=el('section','','simple-country-result'),totals=tacticalTotals([f]);
         card.append(el('h4',f.name),el('p',`${f.side===t.winnerSide?'Won':'Lost'} · ${f.side==='A'?'Attacker':'Defender'}`));
-        const list=el('ul','');f.units.forEach(u=>list.append(el('li',`${u.label}: ${u.committed.toLocaleString()} sent · ${u.lost.toLocaleString()} lost · ${u.remaining.toLocaleString()} returned`)));card.append(list,el('p',`${totals.reserve.toLocaleString()} troops held in reserve.`));countries.append(card);
-      });block.append(countries);
+        const list=el('ul','');f.units.forEach(u=>list.append(el('li',`${u.label}: ${u.committed.toLocaleString()} sent · ${u.lost.toLocaleString()} lost · ${u.remaining.toLocaleString()} returned`)));card.append(list,el('p',`${totals.reserve.toLocaleString()} troops held in reserve.`));
+        const performance=troopPerformance(f);
+        card.append(el('h5','How the troops did'),el('p',performance.summary,'troop-performance-summary'));
+        const assessment=el('ul','','troop-performance');performance.rows.forEach(row=>assessment.append(el('li',row.text)));card.append(assessment);
+        countries.append(card);
+      });block.append(countries,el('p','Troop performance compares losses and return rates, not bravery or damage dealt. The simulation does not track which troop type caused enemy losses.','map-help'));
     }else{
       const old=battle.scenes?.find(s=>s.heading?.startsWith('Outcome'));
       block.append(el('p',old?.text||'Earlier saved battle.'));

@@ -61,3 +61,23 @@ function storyReinforcements(battle,t,pick) {
     return `${entrance} ${switched?`${switched} The messenger responsible for updating the team list nearly swallowed the pencil.`:grudge?`${grudge} Apparently, that grudge had been packed before the lunch supplies.`:`${f.name} fought alongside ${friend} against ${enemy}.`}`;
   });
 }
+
+function troopPerformance(formation) {
+  const deployed=formation.units.filter(u=>u.committed>0);
+  const percent=u=>(100*u.remaining/u.committed).toFixed(1).replace(/\.0$/,'');
+  const rows=formation.units.map(u=>{
+    if(!u.committed)return {key:u.key,text:`${u.label}: not sent into this battle.`};
+    const fraction=u.remaining/u.committed;
+    const assessment=!u.remaining?'No committed troops returned':!u.lost?'Returned at full strength':fraction>=.9?'Light losses':fraction>=.7?'Most troops returned':fraction>=.5?'Heavy losses':'Very heavy losses';
+    return {key:u.key,text:`${u.label}: ${percent(u)}% returned — ${assessment.toLowerCase()}.`};
+  });
+  if(!deployed.length)return {rows,summary:'No troops were committed to this battle.'};
+  const best=deployed.reduce((a,b)=>a.remaining*b.committed>=b.remaining*a.committed?a:b);
+  const leaders=deployed.filter(u=>u.remaining*best.committed===best.remaining*u.committed);
+  const worst=deployed.reduce((a,b)=>a.lost*b.committed>=b.lost*a.committed?a:b);
+  const hardest=deployed.filter(u=>u.lost*worst.committed===worst.lost*u.committed);
+  const summary=leaders.length===deployed.length
+    ?`${formation.name}'s deployed troop types all had the same return rate (${percent(best)}%).`
+    :`${formation.name}'s ${leaders.map(u=>u.label.toLowerCase()).join(' and ')} kept the largest share of their troops (${percent(best)}% returned). ${hardest.map(u=>u.label).join(' and ')} lost the largest share of their deployed troops.`;
+  return {rows,summary};
+}

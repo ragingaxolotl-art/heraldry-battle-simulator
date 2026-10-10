@@ -15,3 +15,9 @@ assert(!run('simpleBattleStory(b,t).join(" ")').includes('Birch fought alongside
 run(`extra.units[0].committed=0;`);
 assert.equal(run('storyReinforcements(b,t,items=>items[0]).length'),0);
 console.log('Passed: named reinforcements, correct final side after betrayal, no entrance for uncommitted forces.');
+const assess=units=>JSON.parse(run(`JSON.stringify(troopPerformance({name:'Oak',units:${JSON.stringify(units)}}))`));
+let report=assess([{label:'Infantry',committed:100,remaining:60,lost:40},{label:'Archers',committed:10,remaining:9,lost:1},{label:'Cavalry',committed:0,remaining:0,lost:0}]);
+assert.match(report.summary,/archers kept the largest share/);assert.match(report.rows[0].text,/60% returned — heavy losses/);assert.match(report.rows[2].text,/not sent/);
+report=assess([{label:'Infantry',committed:10,remaining:0,lost:10},{label:'Archers',committed:20,remaining:0,lost:20}]);assert.match(report.summary,/same return rate \(0%\)/);assert.match(report.rows[0].text,/no committed troops returned/);
+assert.match(assess([{label:'Infantry',committed:3,remaining:2,lost:1}]).rows[0].text,/66.7%/);
+console.log('Passed: troop return percentages, proportional comparison, absent troops, ties and total losses.');
