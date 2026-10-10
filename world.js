@@ -181,7 +181,7 @@ function recordMapBattle(model) {
   events.push(`${model.winnerName} won. ${model.loserName} withdrew. Losses are already deducted; replay does not run another battle.`);
   const loserIndex=model.loserSide==='A'?attacker:defender;
   arrows.push({start:target,end:loserIndex===attacker?position(attacker):[Math.min(1170,target[0]+75),Math.max(35,target[1]-65)],color:'#68557f',label:`${model.loserName}: withdrawal`,retreat:true,eventIndex:events.length-1});
-  const battle={id:Date.now(),scenes:makeBattleScenes(model,position,target,arrows),title:`${model.sideAName} vs ${model.sideBName}`,winner:model.winnerName,events,arrows,mapSnapshot:document.getElementById('worldCanvas').toDataURL('image/png'),participants:model.countries.filter(c=>c.side).map(c=>({index:c.index,name:c.name,side:c.side,shield:studentWorld.countries[studentWorld.selected[c.index]].shield}))};
+  const battle={id:Date.now(),leaders:{attacker,defender},scenes:makeBattleScenes(model,position,target,arrows),title:`${model.sideAName} vs ${model.sideBName}`,winner:model.winnerName,events,arrows,mapSnapshot:document.getElementById('worldCanvas').toDataURL('image/png'),participants:model.countries.filter(c=>c.side).map(c=>({index:c.index,name:c.name,side:c.side,shield:studentWorld.countries[studentWorld.selected[c.index]].shield}))};
   if(typeof attachCampaignReport==='function')attachCampaignReport(battle,model);
   attachTacticalScenes(battle, model, document.getElementById('terrain').value);
   studentWorld.history.unshift(battle);studentWorld.history=studentWorld.history.slice(0,20); activeBattle=battle;
@@ -521,7 +521,7 @@ function renderAfterAction() {
       block.append(el('p',`${attackers.join(' and ')} attacked ${defenders.join(' and ')}.`));
       const decisions=simpleDiplomacyEvents(battle);
       if(decisions.length){block.append(el('h4','Allies & decisions'));const list=el('ul','');list.className='simple-diplomacy';decisions.forEach(text=>list.append(el('li',text)));block.append(list);}
-      block.append(el('h4','The battlefield story'),el('p','Fictional battlefield fun; the troop counts below are the actual simulation results.','map-help'));
+      block.append(el('h4','The battlefield story'),el('p','Fictional battlefield fun, including dramatic arrival timing; sides and troop counts come from the simulation.','map-help'));
       simpleBattleStory(battle,t).forEach(text=>block.append(el('p',text,'battle-narrative')));
       const countries=el('div','','simple-country-results');
       t.formations.forEach(f=>{
