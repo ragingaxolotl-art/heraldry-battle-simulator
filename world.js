@@ -139,7 +139,7 @@ function drawWorldBase(context,detail=null) {
   context.textAlign='left';if(detail)return;context.fillStyle='#183746';context.font='bold 20px Georgia';context.fillText(`Kingdoms at War · World ${studentWorld.seed.toString(36).toUpperCase()}`,25,35);
   context.fillStyle='rgba(255,253,246,.95)';context.fillRect(20,625,1160,42);
   context.font='13px sans-serif';
-  const key=studentWorld.biomes?.filter(Boolean).map(b=>[b.name,b.color]) || [['Grassland','#b6cc88'],['Forest','#6c9e78'],['Highlands','#9c9888'],['Drylands','#dfc88a'],['Ocean','#adc9d7']];
+  const key=(studentWorld.biomes||AZGAAR_BIOMES).filter(Boolean).map(b=>[b.name,b.color]);
   context.font='10px sans-serif';key.forEach(([name,color],i)=>{const x=30+(i%7)*164,y=630+Math.floor(i/7)*18;context.fillStyle=color;context.fillRect(x,y,12,12);context.fillStyle='#183746';context.fillText(name,x+16,y+10,145);});
   context.fillStyle='#183746';context.font='12px sans-serif';context.fillText('Fictional classroom geography • Economy & military templates: Gria / Azgaar’s Fantasy Map Generator',25,678);
 }

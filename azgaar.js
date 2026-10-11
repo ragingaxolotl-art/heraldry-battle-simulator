@@ -1,5 +1,3 @@
-// Default palette from Azgaar's Fantasy Map Generator (MIT; vendor/Azgaar-LICENSE.txt).
-const AZGAAR_BIOMES=['Marine','Hot desert','Cold desert','Savanna','Grassland','Tropical seasonal forest','Temperate deciduous forest','Tropical rainforest','Temperate rainforest','Taiga','Tundra','Glacier','Wetland'].map((name,i)=>({i,name,color:['#466eab','#fbe79f','#b5b887','#d2d082','#c8d68f','#b6d95d','#29bc56','#7dcb35','#409c43','#4b6b32','#96784b','#d5e7eb','#0b9131'][i]}));
 function importAzgaarWorld(input) {
   const pack=input?.pack, info=input?.info;
   if(!pack||!Array.isArray(pack.cells)||!Array.isArray(pack.vertices)||!Array.isArray(pack.states)||!Number.isFinite(info?.width)||!Number.isFinite(info?.height)||info.width<=0||info.height<=0||pack.cells.length>100000||pack.vertices.length>300000||pack.states.length>10000)throw Error('Choose Azgaar Export → JSON → full. A PNG or minimal JSON does not include biome geometry.');

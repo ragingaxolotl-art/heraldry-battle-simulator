@@ -32,3 +32,12 @@ const cleanAfter=vm.runInContext('commands.length=0;studentWorld.countries[0].sh
 assert.equal(cleanBefore,cleanAfter,'clean map drawing must not include shields or draggable positions');
 console.log('Passed: clean PNG rendering is unaffected by shield uploads or movement.');
 if(process.env.WRITE_WORLD_FIXTURE) fs.writeFileSync('/tmp/student-world-backup.json',vm.runInContext('JSON.stringify(save)',context));
+const seen=new Set();
+for(const seed of [1,12,42,2026]){
+ const world=vm.runInContext(`generateStudentWorld(${seed},GRIA_TEMPLATE)`,context);
+ assert.equal(world.biomes.length,13);
+ for(const cell of world.cells){assert(cell.biome);assert.equal(cell.biome.color,world.biomes[cell.biome.i].color);assert.equal(cell.biome.i===0,!cell.land);seen.add(cell.biome.i);}
+}
+assert.equal(seen.size,13,'climate supports all 13 biomes across seeded worlds');
+assert.equal(restored.biomes.length,13);
+console.log('Passed: all 13 biome types supported, all cells have matching palette entries, water remains Marine, saved worlds upgrade.');

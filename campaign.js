@@ -140,7 +140,7 @@ function renderSettlementMap(city) {
   frame.style.transform=`rotate(${city.mapRotation}deg)`;
   const host=document.getElementById('atlasBiomes');host.replaceChildren();
   (studentWorld.biomes||AZGAAR_BIOMES).filter(Boolean).forEach(b=>{const item=campaignElement('span'),swatch=campaignElement('i',undefined,'biome-swatch');swatch.style.background=b.color;swatch.setAttribute('aria-hidden','true');item.append(swatch,document.createTextNode(b.name));host.append(item);});
-  document.getElementById('atlasBiomeNote').textContent=studentWorld.azgaar?'All biomes from the imported world, including any custom names and colors. Not every biome occurs in every country.':'Azgaar’s complete reference list. This simplified classroom world uses its own terrain colors; import Azgaar Full JSON to use Azgaar biomes on the map.';
+  document.getElementById('atlasBiomeNote').textContent=studentWorld.azgaar?'All biomes from the imported world, including any custom names and colors. Not every biome occurs in every country.':'This whole world uses Azgaar’s 13 biome types, colors, and classification rules. Local temperature and moisture are simulated for this classroom map. Biomes vary with climate and elevation; not every world contains every type.';
 }
 function selectedSettlement(){return activeAtlasCountry().cities.find(c=>c.id===atlasCityId);}
 document.getElementById('settlementGenerate').addEventListener('click',()=>{const city=selectedSettlement();city.mapSeed=crypto.getRandomValues(new Uint32Array(1))[0]%2147483646+1;saveWorld();renderSettlementMap(city);});
