@@ -111,7 +111,12 @@ function renderAtlasEditors() {
   campaignInput(host,city.capital?'Governor (fictional)':'Mayor (fictional)',city.mayor,v=>{city.mayor=v;saveWorld();updateSettlementFacts(city);});
   const popInput=campaignInput(host,'Population',city.population??'',v=>{if(v.trim()===''){city.population=null;city.populationSource='unknown';}else if(/^\d+$/.test(v)&&Number.isSafeInteger(Number(v))){city.population=Number(v);city.populationSource='student';}else return;saveWorld();updateSettlementFacts(city);});popInput.inputMode='numeric';popInput.addEventListener('change',()=>renderSettlementMap(city));
   host.append(campaignElement('p',`Uses ${c.name}’s currency${c.currency?': '+c.currency:''}.`,'map-help'));
-  if(!city.capital){
+  if(city.capital){
+    for(const [key,label] of [['majorGood1','Major good 1'],['majorGood2','Major good 2']]){
+      const input=campaignInput(host,label,city[key],v=>{city[key]=v;saveWorld();updateSettlementCaption(city);});
+      const hint=campaignElement('p','Goods are things people make or sell, such as cloth, pottery, tools, or jewelry. You can make up an imaginary good!','map-help');hint.id=`settlement-${key}-help`;input.setAttribute('aria-describedby',hint.id);input.parentElement.after(hint);
+    }
+  }else{
     for(const [key,label,help] of [['crop','Major crop','Crops are plants grown to sell, such as wheat, apples, or cotton. You can make up an imaginary crop!'],['artisan','Artisanal good','Artisanal goods are things people make by hand, such as pottery, woven baskets, or jewelry. You can make up an imaginary good!']]){
       const input=campaignInput(host,label,city[key],v=>{city[key]=v;saveWorld();updateSettlementCaption(city);});
       const hint=campaignElement('p',help,'map-help');hint.id=`settlement-${key}-help`;input.setAttribute('aria-describedby',hint.id);input.parentElement.after(hint);
@@ -190,7 +195,8 @@ enableMapPanning(atlasMap,()=>atlasView,view=>{atlasView=view;drawAtlas();},()=>
 function settlementCaptionLines(city,country) {
   const source={azgaar:'Azgaar data',estimated:'classroom estimate',student:'student edited',unknown:'unknown'};
   const lines=[`${city.capital?'Capital city':'Village'} of ${country.name}`,`${city.capital?'Governor':'Mayor'}: ${city.mayor||'Not yet named'}`,`Population: ${city.population==null?'Unknown':city.population.toLocaleString()} (${source[city.populationSource]||'unknown'})`];
-  if(!city.capital)lines.push(`Major crop: ${city.crop||'Not yet chosen'}`,`Artisanal good: ${city.artisan||'Not yet chosen'}`);
+  if(city.capital)lines.push(`Major good 1: ${city.majorGood1||'Not yet chosen'}`,`Major good 2: ${city.majorGood2||'Not yet chosen'}`);
+  else lines.push(`Major crop: ${city.crop||'Not yet chosen'}`,`Artisanal good: ${city.artisan||'Not yet chosen'}`);
   if(city.notes)lines.push(`Our story: ${city.notes}`);
   return lines;
 }
