@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=27">
+  <link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body>
   <header class="app-header">
@@ -177,8 +177,19 @@
       </div>
       <section class="atlas-card settlement-panel" aria-labelledby="settlementTitle">
         <p class="eyebrow">Inside your settlement · Maps by Watabou</p><h3 id="settlementTitle">Settlement map</h3>
-        <div class="action-row"><span id="settlementKindLabel"></span><button type="button" id="settlementGenerate" class="secondary-button">New layout</button><button type="button" id="settlementRotate" class="secondary-button">Rotate view 90°</button><a id="settlementOpen" target="_blank" rel="noopener noreferrer">Open map editor ↗</a><button id="settlementCapture" class="primary-button" type="button">Capture map &amp; download PNG</button></div>
-        <p id="settlementFacts"></p><p class="map-help">When your map is ready, click Capture map &amp; download PNG. Choose <strong>This Tab</strong> (Kingdoms at War), then Share. We capture just the map, add your information, and stop sharing automatically. Works in supported desktop browsers.</p><p id="settlementCaptureStatus" role="status"></p><div class="settlement-preview"><iframe id="settlementFrame" title="Watabou settlement map" loading="lazy" referrerpolicy="no-referrer"></iframe></div>
+        <p id="settlementFacts"></p>
+        <div class="settlement-map-layout">
+          <div class="settlement-preview"><iframe id="settlementFrame" title="Watabou settlement map" loading="lazy" referrerpolicy="no-referrer"></iframe></div>
+          <div class="settlement-map-tools" role="group" aria-label="Settlement map controls">
+            <span id="settlementKindLabel"></span>
+            <button id="settlementCapture" class="primary-button" type="button">Capture map &amp; download PNG</button>
+            <button type="button" id="settlementGenerate" class="secondary-button">New layout</button>
+            <button type="button" id="settlementRotate" class="secondary-button">Rotate view 90°</button>
+            <a id="settlementOpen" target="_blank" rel="noopener noreferrer">Open map editor ↗</a>
+            <p class="map-help">To download, choose <strong>This Tab</strong> (Kingdoms at War), then Share. Your information is added beneath the map. Sharing stops automatically. Use a supported desktop browser.</p>
+            <p id="settlementCaptureStatus" role="status"></p>
+          </div>
+        </div>
         <div id="settlementCaption" class="settlement-caption"></div>
         <details class="settlement-caption-export"><summary>Alternative: use an existing map PNG</summary><a id="settlementExport" target="_blank" rel="noopener noreferrer">Download from Watabou ↗</a><p id="settlementExportHelp" class="map-help"></p><label class="primary-button" for="settlementCaptionFile">Add information to map PNG<input id="settlementCaptionFile" type="file" accept="image/png"></label><p class="map-help">Select the PNG you just downloaded for this settlement. A new PNG downloads with your custom information underneath. This also works with maps you edited in Watabou. The selected image is used exactly as supplied.</p><p id="settlementCaptionStatus" role="status"></p></details>
         <p class="map-help">Choose a capital city or village above to see its map. Rotation is included when you capture this map. Open the editor if you want to change colors. Changes made inside Watabou’s editor are separate from your progress backup. If the preview cannot load, use Open editor.</p>
@@ -240,16 +251,16 @@
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=27"></script>
-  <script src="azgaar.js?v=27"></script>
-  <script src="formations.js?v=27"></script>
-  <script src="campaign-core.js?v=27"></script>
-  <script src="app.js?v=27"></script>
-  <script src="battle-picture.js?v=27"></script>
-  <script src="battle-stories.js?v=27"></script>
-  <script src="battle-closeup.js?v=27"></script>
-  <script src="world.js?v=27"></script>
-  <script src="campaign.js?v=27"></script>
-  <script src="settlement-capture.js?v=27"></script>
+  <script src="world-core.js?v=28"></script>
+  <script src="azgaar.js?v=28"></script>
+  <script src="formations.js?v=28"></script>
+  <script src="campaign-core.js?v=28"></script>
+  <script src="app.js?v=28"></script>
+  <script src="battle-picture.js?v=28"></script>
+  <script src="battle-stories.js?v=28"></script>
+  <script src="battle-closeup.js?v=28"></script>
+  <script src="world.js?v=28"></script>
+  <script src="campaign.js?v=28"></script>
+  <script src="settlement-capture.js?v=28"></script>
 </body>
 </html>
