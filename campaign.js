@@ -97,7 +97,7 @@ function renderAtlasMarkers() {
 function renderAtlasEditors() {
   const c=activeAtlasCountry(),countryHost=document.getElementById('atlasCountryEditor');countryHost.replaceChildren();document.getElementById('atlasCountryTitle').textContent=c.name;
   const index=studentWorld.selected.indexOf(c.id);
-  const editCountry=(key,value)=>{c[key]=value;cards()[index].querySelector(`.country-${key}`).value=value;saveWorld();if(key==='name'){document.getElementById('atlasCountryTitle').textContent=value;renderAtlasCountries();drawWorld(atlasBase.getContext('2d'));drawAtlas();refreshCountryChoices();refreshRegionChoices();renderBattleChoices();}};
+  const editCountry=(key,value)=>{c[key]=value;if(selectedSettlement())updateSettlementCaption(selectedSettlement());cards()[index].querySelector(`.country-${key}`).value=value;saveWorld();if(key==='name'){document.getElementById('atlasCountryTitle').textContent=value;renderAtlasCountries();drawWorld(atlasBase.getContext('2d'));drawAtlas();refreshCountryChoices();refreshRegionChoices();renderBattleChoices();}};
   campaignInput(countryHost,'Country name',c.name,v=>editCountry('name',v),{max:38});
   CAMPAIGN_FIELDS.forEach(([key,label])=>campaignInput(countryHost,label,c[key],v=>editCountry(key,v)));
   const citySelect=document.getElementById('atlasCitySelect');citySelect.replaceChildren(...c.cities.map(city=>new Option(`${city.capital?'★ Capital city: ':'Village: '}${city.name||'Unnamed settlement'}`,city.id)));citySelect.value=atlasCityId;
@@ -111,7 +111,13 @@ function renderAtlasEditors() {
   campaignInput(host,city.capital?'Governor (fictional)':'Mayor (fictional)',city.mayor,v=>{city.mayor=v;saveWorld();updateSettlementFacts(city);});
   const popInput=campaignInput(host,'Population',city.population??'',v=>{if(v.trim()===''){city.population=null;city.populationSource='unknown';}else if(/^\d+$/.test(v)&&Number.isSafeInteger(Number(v))){city.population=Number(v);city.populationSource='student';}else return;saveWorld();updateSettlementFacts(city);});popInput.inputMode='numeric';popInput.addEventListener('change',()=>renderSettlementMap(city));
   host.append(campaignElement('p',`Uses ${c.name}’s currency${c.currency?': '+c.currency:''}.`,'map-help'));
-  campaignInput(host,`What makes this ${kind.toLowerCase()} special?`,city.notes,v=>{city.notes=v;saveWorld();},{max:1200,multiline:true});
+  if(!city.capital){
+    for(const [key,label,help] of [['crop','Major crop','Crops are plants grown to sell, such as wheat, apples, or cotton. You can make up an imaginary crop!'],['artisan','Artisanal good','Artisanal goods are things people make by hand, such as pottery, woven baskets, or jewelry. You can make up an imaginary good!']]){
+      const input=campaignInput(host,label,city[key],v=>{city[key]=v;saveWorld();updateSettlementCaption(city);});
+      const hint=campaignElement('p',help,'map-help');hint.id=`settlement-${key}-help`;input.setAttribute('aria-describedby',hint.id);input.parentElement.after(hint);
+    }
+  }
+  campaignInput(host,`What makes this ${kind.toLowerCase()} special?`,city.notes,v=>{city.notes=v;saveWorld();updateSettlementCaption(city);},{max:1200,multiline:true});
   renderSettlementMap(city);
   if(studentWorld.background){const move=campaignElement('button',`Move this ${kind.toLowerCase()}`,'secondary-button');move.type='button';move.addEventListener('click',()=>{movingAtlasCity=true;document.getElementById('atlasMapNote').textContent='Click the map to place this city. Press Escape to cancel.';document.getElementById('atlasMap').focus();});host.append(move);}
 }
@@ -119,6 +125,7 @@ function updateSettlementFacts(city) {
   document.getElementById('settlementTitle').textContent=city.name||'Settlement map';
   const source={azgaar:'from Azgaar',estimated:'classroom estimate',student:'student edited',unknown:'not included in this import'};
   document.getElementById('settlementFacts').textContent=`${city.capital?'Governor':'Mayor'}: ${city.mayor||'Add a fictional leader above'} · Population: ${city.population===null?'unknown':city.population.toLocaleString()} (${source[city.populationSource]||'unknown'}).`;
+  updateSettlementCaption(city);
   document.getElementById('settlementOpen').href=settlementMapURL(city);
   const exportURL=new URL(settlementMapURL(city));if(city.capital)exportURL.searchParams.set('export','png');
   document.getElementById('settlementExport').href=exportURL.href;
@@ -179,3 +186,55 @@ atlasMap.addEventListener('click',event=>{
 refreshCampaign();
 
 enableMapPanning(atlasMap,()=>atlasView,view=>{atlasView=view;drawAtlas();},()=>!movingAtlasCity);
+
+function settlementCaptionLines(city,country) {
+  const source={azgaar:'Azgaar data',estimated:'classroom estimate',student:'student edited',unknown:'unknown'};
+  const lines=[`${city.capital?'Capital city':'Village'} of ${country.name}`,`${city.capital?'Governor':'Mayor'}: ${city.mayor||'Not yet named'}`,`Population: ${city.population==null?'Unknown':city.population.toLocaleString()} (${source[city.populationSource]||'unknown'})`];
+  if(!city.capital)lines.push(`Major crop: ${city.crop||'Not yet chosen'}`,`Artisanal good: ${city.artisan||'Not yet chosen'}`);
+  if(city.notes)lines.push(`Our story: ${city.notes}`);
+  return lines;
+}
+function updateSettlementCaption(city) {
+  const host=document.getElementById('settlementCaption');host.replaceChildren(campaignElement('h4',city.name||'Unnamed settlement'));
+  settlementCaptionLines(city,activeAtlasCountry()).forEach(line=>host.append(campaignElement('p',line)));
+}
+function wrapSettlementText(ctx,text,width) {
+  const lines=[];
+  for(const paragraph of text.split('\n')){
+    let line='';
+    for(const word of paragraph.split(/\s+/)){
+      if(ctx.measureText(line+(line?' ':'')+word).width<=width){line+=(line?' ':'')+word;continue;}
+      if(line){lines.push(line);line='';}
+      for(const char of word){if(line&&ctx.measureText(line+char).width>width){lines.push(line);line='';}line+=char;}
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+async function exportSettlementCaption(file,city,country) {
+  if(file.type!=='image/png')throw Error('Choose the PNG map downloaded from Watabou.');
+  if(file.size>40000000)throw Error('Choose a PNG smaller than 40 MB.');
+  const bitmap=await createImageBitmap(file);
+  try {
+    const width=1200,mapHeight=Math.round(bitmap.height*width/bitmap.width);
+    if(mapHeight>6000)throw Error('Choose a landscape or square map PNG.');
+    const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+    ctx.font='bold 36px sans-serif';const title=wrapSettlementText(ctx,city.name||'Unnamed settlement',1100);
+    ctx.font='24px sans-serif';const paragraphs=settlementCaptionLines(city,country).map(text=>wrapSettlementText(ctx,text,1100));
+    canvas.width=width;canvas.height=mapHeight+100+title.length*45+paragraphs.reduce((n,p)=>n+p.length*34+14,0)+44;
+    ctx.fillStyle='#fffdf5';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,width,mapHeight);
+    ctx.fillStyle='#233c32';ctx.textBaseline='top';ctx.font='bold 36px sans-serif';let y=mapHeight+36;
+    for(const line of title){ctx.fillText(line,50,y);y+=45;}y+=16;ctx.font='24px sans-serif';
+    for(const lines of paragraphs){for(const line of lines){ctx.fillText(line,50,y);y+=34;}y+=14;}
+    ctx.font='18px sans-serif';ctx.fillStyle='#52665b';ctx.fillText('Map by Watabou · Fictional settlement information by the student',50,y+12);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('Could not create this PNG. Please try again.');
+    downloadBlob(blob,`${(city.name||'settlement').replace(/[^a-z0-9-]+/gi,'-')}-map-and-information.png`);
+  }finally{bitmap.close();}
+}
+document.getElementById('settlementCaptionFile').addEventListener('change',async event=>{
+  const input=event.target,file=input.files[0];if(!file)return;
+  const city={...selectedSettlement()},country={...activeAtlasCountry()},status=document.getElementById('settlementCaptionStatus');
+  status.textContent=`Adding ${city.name}’s information…`;
+  try{await exportSettlementCaption(file,city,country);status.textContent=`Downloaded ${city.name}’s map with its custom information underneath.`;}catch(error){status.textContent=error.message;}
+  input.value='';
+});
