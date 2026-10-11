@@ -676,3 +676,5 @@ dialog p { line-height: 1.6; }
 .atlas-notebooks{grid-template-columns:1fr}.settlement-panel a.primary-button{color:#fff}
 
 .settlement-caption,.settlement-caption-export{max-width:720px;margin:1rem auto;padding:1rem;background:#fffdf5;border:1px solid #ddd4bf;border-radius:8px}.settlement-caption p{white-space:pre-wrap;overflow-wrap:anywhere}.settlement-caption-export input{display:block;max-width:100%;margin-top:.5rem}.settlement-caption-export label{display:block}.settlement-caption h4{margin:0 0 .7rem;font-size:1.3rem}
+
+.capturing-settlement .settlement-preview{width:min(720px,calc(100vh - 100px),calc(100vw - 40px))!important;transition:none!important}.capture-tab-marker{position:fixed;z-index:2147483647;top:4px;left:4px;display:flex;width:96px;height:16px;pointer-events:none}.capture-tab-marker span{width:16px;height:16px;flex:none}
