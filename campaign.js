@@ -82,7 +82,7 @@ let movingAtlasCity=false;
 function renderAtlasMarkers() {
   const host=document.getElementById('atlasMarkers');host.replaceChildren();
   visibleAtlasCities().forEach(city=>{
-    const [x,y]=atlasScreen(city.position),b=campaignElement('button',`${city.capital?'★':'●'}${city.country===atlasCountryId||city.capital?' '+(city.name||'Unnamed city'):''}`,'atlas-city-marker');b.type='button';b.style.left=`${x/12}%`;b.style.top=`${y/7}%`;b.style.setProperty('--country-color',ATLAS_COLORS[studentWorld.selected.indexOf(city.country)]);b.setAttribute('aria-label',`${city.name}, ${studentWorld.countries[city.country].name}${city.capital?', capital':''}`);b.setAttribute('aria-pressed',String(city.id===atlasCityId));b.title=b.getAttribute('aria-label');
+    const [x,y]=atlasScreen(city.position),b=campaignElement('button',`${city.capital?'★':'●'}${city.country===atlasCountryId||city.capital?' '+(city.name||'Unnamed city'):''}`,'atlas-city-marker');b.type='button';b.style.left=`${x/12}%`;b.style.top=`${y/7}%`;b.style.setProperty('--country-color',ATLAS_COLORS[studentWorld.selected.indexOf(city.country)]);b.setAttribute('aria-label',`${city.name}, ${studentWorld.countries[city.country].name}, ${city.capital?'capital city':'village'}`);b.setAttribute('aria-pressed',String(city.id===atlasCityId));b.title=b.getAttribute('aria-label');
     b.addEventListener('click',()=>{selectAtlasCountry(city.country,false,city.id);document.getElementById('atlasCityEditor').querySelector('input').focus({preventScroll:true});});host.append(b);
   });
   if(document.getElementById('atlasShowArmies').checked)[atlasCountryId].forEach(id=>{
@@ -100,28 +100,33 @@ function renderAtlasEditors() {
   const editCountry=(key,value)=>{c[key]=value;cards()[index].querySelector(`.country-${key}`).value=value;saveWorld();if(key==='name'){document.getElementById('atlasCountryTitle').textContent=value;renderAtlasCountries();drawWorld(atlasBase.getContext('2d'));drawAtlas();refreshCountryChoices();refreshRegionChoices();renderBattleChoices();}};
   campaignInput(countryHost,'Country name',c.name,v=>editCountry('name',v),{max:38});
   CAMPAIGN_FIELDS.forEach(([key,label])=>campaignInput(countryHost,label,c[key],v=>editCountry(key,v)));
-  const citySelect=document.getElementById('atlasCitySelect');citySelect.replaceChildren(...c.cities.map(city=>new Option(`${city.capital?'★ ':''}${city.name||'Unnamed city'}`,city.id)));citySelect.value=atlasCityId;
+  const citySelect=document.getElementById('atlasCitySelect');citySelect.replaceChildren(...c.cities.map(city=>new Option(`${city.capital?'★ Capital city: ':'Village: '}${city.name||'Unnamed settlement'}`,city.id)));citySelect.value=atlasCityId;
   const city=c.cities.find(city=>city.id===atlasCityId),host=document.getElementById('atlasCityEditor');host.replaceChildren();if(!city)return;
-  document.getElementById('atlasCityTitle').textContent=city.name||'Your city';
+  const kind=city.capital?'City':'Village';
+  document.getElementById('atlasSettlementType').textContent=city.capital?'Your capital city':'Your village';
+  document.getElementById('atlasCityTitle').textContent=city.name||`Your ${kind.toLowerCase()}`;
   const note=campaignElement('p',city.source==='azgaar'?'Settlement imported from Azgaar. Give it your own story.':'A generated settlement. Rename it and make it yours.','map-help');host.append(note);
-  const cityNameInput=campaignInput(host,'City name',city.name,v=>{city.name=v;saveWorld();document.getElementById('atlasCityTitle').textContent=v||'Your city';citySelect.selectedOptions[0].textContent=`${city.capital?'★ ':''}${v||'Unnamed city'}`;document.querySelectorAll('#regimentCards .regiment-base option').forEach(option=>{if(option.value===city.id)option.textContent=v||'Unnamed city';});drawAtlas();updateSettlementFacts(city);},{max:60});
+  const cityNameInput=campaignInput(host,`${kind} name`,city.name,v=>{city.name=v;saveWorld();document.getElementById('atlasCityTitle').textContent=v||`Your ${kind.toLowerCase()}`;citySelect.selectedOptions[0].textContent=`${city.capital?'★ Capital city: ':'Village: '}${v||'Unnamed settlement'}`;document.querySelectorAll('#regimentCards .regiment-base option').forEach(option=>{if(option.value===city.id)option.textContent=v||'Unnamed city';});drawAtlas();updateSettlementFacts(city);},{max:60});
   cityNameInput.addEventListener('change',()=>renderSettlementMap(city));
-  campaignInput(host,'Mayor (fictional)',city.mayor,v=>{city.mayor=v;saveWorld();updateSettlementFacts(city);});
+  campaignInput(host,city.capital?'Governor (fictional)':'Mayor (fictional)',city.mayor,v=>{city.mayor=v;saveWorld();updateSettlementFacts(city);});
   const popInput=campaignInput(host,'Population',city.population??'',v=>{if(v.trim()===''){city.population=null;city.populationSource='unknown';}else if(/^\d+$/.test(v)&&Number.isSafeInteger(Number(v))){city.population=Number(v);city.populationSource='student';}else return;saveWorld();updateSettlementFacts(city);});popInput.inputMode='numeric';popInput.addEventListener('change',()=>renderSettlementMap(city));
-  CAMPAIGN_FIELDS.forEach(([key,label])=>{const input=campaignInput(host,label,city[key],v=>{city[key]=v;saveWorld();});input.placeholder=key==='currency'&&c.currency?`Country uses ${c.currency}`:'Your idea…';});
-  campaignInput(host,'What makes this city special?',city.notes,v=>{city.notes=v;saveWorld();},{max:1200,multiline:true});
+  host.append(campaignElement('p',`Uses ${c.name}’s currency${c.currency?': '+c.currency:''}.`,'map-help'));
+  campaignInput(host,`What makes this ${kind.toLowerCase()} special?`,city.notes,v=>{city.notes=v;saveWorld();},{max:1200,multiline:true});
   renderSettlementMap(city);
-  if(studentWorld.background){const move=campaignElement('button','Move this city','secondary-button');move.type='button';move.addEventListener('click',()=>{movingAtlasCity=true;document.getElementById('atlasMapNote').textContent='Click the map to place this city. Press Escape to cancel.';document.getElementById('atlasMap').focus();});host.append(move);}
+  if(studentWorld.background){const move=campaignElement('button',`Move this ${kind.toLowerCase()}`,'secondary-button');move.type='button';move.addEventListener('click',()=>{movingAtlasCity=true;document.getElementById('atlasMapNote').textContent='Click the map to place this city. Press Escape to cancel.';document.getElementById('atlasMap').focus();});host.append(move);}
 }
 function updateSettlementFacts(city) {
   document.getElementById('settlementTitle').textContent=city.name||'Settlement map';
   const source={azgaar:'from Azgaar',estimated:'classroom estimate',student:'student edited',unknown:'not included in this import'};
-  document.getElementById('settlementFacts').textContent=`Mayor: ${city.mayor||'Add your mayor below'} · Population: ${city.population===null?'unknown':city.population.toLocaleString()} (${source[city.populationSource]||'unknown'}).`;
+  document.getElementById('settlementFacts').textContent=`${city.capital?'Governor':'Mayor'}: ${city.mayor||'Add a fictional leader above'} · Population: ${city.population===null?'unknown':city.population.toLocaleString()} (${source[city.populationSource]||'unknown'}).`;
   document.getElementById('settlementOpen').href=settlementMapURL(city);
+  const exportURL=new URL(settlementMapURL(city));if(city.capital)exportURL.searchParams.set('export','png');
+  document.getElementById('settlementExport').href=exportURL.href;
+  document.getElementById('settlementExportHelp').textContent=city.capital?'Export PNG opens Watabou and starts its PNG export.':'Export PNG opens this village in Watabou. Right-click the map, then choose Export → PNG. On a touch screen, use its menu.';
 }
 function renderSettlementMap(city) {
   updateSettlementFacts(city);
-  document.getElementById('settlementKind').value=city.mapKind;
+  document.getElementById('settlementKindLabel').textContent=city.capital?'Capital city · named districts':'Village map';
   const frame=document.getElementById('settlementFrame'),url=settlementMapURL(city,true);
   // Avoid reloading the external generator on ordinary notebook edits.
   if(!document.getElementById('atlasWorkspace').hidden&&frame.getAttribute('src')!==url)frame.src=url;
@@ -131,7 +136,6 @@ function renderSettlementMap(city) {
   document.getElementById('atlasBiomeNote').textContent=studentWorld.azgaar?'All biomes from the imported world, including any custom names and colors. Not every biome occurs in every country.':'Azgaar’s complete reference list. This simplified classroom world uses its own terrain colors; import Azgaar Full JSON to use Azgaar biomes on the map.';
 }
 function selectedSettlement(){return activeAtlasCountry().cities.find(c=>c.id===atlasCityId);}
-document.getElementById('settlementKind').addEventListener('change',event=>{const city=selectedSettlement();city.mapKind=event.target.value;saveWorld();renderSettlementMap(city);});
 document.getElementById('settlementGenerate').addEventListener('click',()=>{const city=selectedSettlement();city.mapSeed=crypto.getRandomValues(new Uint32Array(1))[0]%2147483646+1;saveWorld();renderSettlementMap(city);});
 document.getElementById('settlementRotate').addEventListener('click',()=>{const city=selectedSettlement();city.mapRotation=(city.mapRotation+90)%360;saveWorld();renderSettlementMap(city);});
 function renderRegiments() {

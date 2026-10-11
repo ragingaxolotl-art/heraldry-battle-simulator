@@ -84,7 +84,7 @@ function restoreCountryCampaign(world,country,saved) {
     if(!Array.isArray(cities)||cities.length<1||cities.length>100000||new Set(cities.map(c=>c?.id)).size!==cities.length)throw Error('Invalid saved cities.');
     country.cities=cities.map(c=>{
       if(!c||typeof c.id!=='string'||c.id.length>80||!campaignPoint(c.position))throw Error('Invalid saved city location.');
-      return {id:c.id,country:country.id,name:campaignText(c.name,60),position:[...c.position],capital:Boolean(c.capital),source:['azgaar','manual','generated'].includes(c.source)?c.source:'generated',...Object.fromEntries(CAMPAIGN_FIELDS.map(([k])=>[k,campaignText(c[k])])),notes:campaignText(c.notes,1200),mayor:c.mayor===undefined?undefined:campaignText(c.mayor),population:Number.isSafeInteger(c.population)&&c.population>=0?c.population:null,populationSource:['azgaar','estimated','student','unknown'].includes(c.populationSource)?c.populationSource:'unknown',mapKind:['city','village'].includes(c.mapKind)?c.mapKind:undefined,mapSeed:Number.isInteger(c.mapSeed)&&c.mapSeed>0&&c.mapSeed<=2147483646?c.mapSeed:undefined,mapRotation:[0,90,180,270].includes(c.mapRotation)?c.mapRotation:0,port:Boolean(c.port),river:Boolean(c.river)};
+      return {id:c.id,country:country.id,name:campaignText(c.name,60),position:[...c.position],capital:Boolean(c.capital),source:['azgaar','manual','generated'].includes(c.source)?c.source:'generated',...Object.fromEntries(CAMPAIGN_FIELDS.map(([k])=>[k,campaignText(c[k])])),notes:campaignText(c.notes,1200),mayor:c.mayor===undefined?undefined:campaignText(c.mayor),population:Number.isSafeInteger(c.population)&&c.population>=0?c.population:null,populationSource:['azgaar','estimated','student','unknown'].includes(c.populationSource)?c.populationSource:'unknown',mapKind:['city','village'].includes(c.mapKind)?c.mapKind:undefined,mapSeed:Number.isInteger(c.mapSeed)&&c.mapSeed>0&&c.mapSeed<=2147483646?c.mapSeed:undefined,mapRotation:[0,90,180,270].includes(c.mapRotation)?c.mapRotation:0,port:Boolean(c.port),river:Boolean(c.river),...Object.fromEntries(['walls','citadel','plaza','temple','shantytown'].filter(k=>typeof c[k]==='boolean').map(k=>[k,c[k]]))};
     });
   }
   if(saved.regiments!==undefined){
@@ -103,17 +103,18 @@ function ensureSettlement(world,city) {
   let hash=2166136261;
   for(const ch of `${world.azgaar?.info?.seed||world.seed}:${city.id}`)hash=Math.imul(hash^ch.charCodeAt(0),16777619)>>>0;
   if(!city.mapSeed)city.mapSeed=hash%2147483646+1;
-  if(!city.mapKind)city.mapKind=/haven/i.test(city.name)||!city.capital?'village':'city';
+  city.mapKind=city.capital?'city':'village';
   if(![0,90,180,270].includes(city.mapRotation))city.mapRotation=0;
   if(city.mayor===undefined)city.mayor=['Mira Reed','Tobin Vale','Amara Brook','Rowan Hale','Lena Wren','Niko Ashford'][hash%6];
-  if(city.population===null&&city.populationSource==='unknown')return;
+  const imported=world.settlements?.find(s=>s.id===city.id);
+  if((city.population==null||city.populationSource==='unknown')&&Number.isSafeInteger(imported?.population)){city.population=imported.population;city.populationSource='azgaar';}
   if(!Number.isSafeInteger(city.population)||city.population<0){
-    city.population=city.source==='azgaar'?null:(city.capital?2000+hash%18000:120+hash%780);
-    city.populationSource=city.source==='azgaar'?'unknown':'estimated';
+    city.population=city.capital?2000+hash%18000:120+hash%780;
+    city.populationSource='estimated';
   }
 }
 function settlementMapURL(city,preview=false) {
-  const village=city.mapKind==='village';
+  const village=!city.capital;
   const url=new URL(`https://watabou.github.io/${village?'village-generator':'city-generator'}/`);
   url.searchParams.set('seed',String(city.mapSeed));url.searchParams.set('name',city.name);
   if(city.population!==null)url.searchParams.set(village?'pop':'population',String(city.population));
@@ -123,9 +124,11 @@ function settlementMapURL(city,preview=false) {
     url.searchParams.set('tags',['no square','isolated',city.port?'coast':city.river?'river':'',pop>300?'dense':''].filter(Boolean).join(','));
     url.searchParams.set('style','default');
   }else{
-    url.searchParams.set('style','natural');url.searchParams.set('size',String(Math.max(6,Math.min(100,Math.ceil((city.population??3000)/500)))));
+    url.searchParams.set('style','default');url.searchParams.set('size',String(Math.max(6,Math.min(100,Math.ceil((city.population??3000)/500)))));
+    for(const key of ['walls','citadel','plaza','temple','shantytown'])if(typeof city[key]==='boolean')url.searchParams.set(key,city[key]?'1':'0');
     url.searchParams.set('coast',city.port?'1':'0');url.searchParams.set('river',city.river?'1':'0');
   }
-  if(preview)url.searchParams.set('preview','1');
+  // Watabou's lightweight city preview omits district labels and the map title.
+  if(preview&&village)url.searchParams.set('preview','1');
   return url.href;
 }

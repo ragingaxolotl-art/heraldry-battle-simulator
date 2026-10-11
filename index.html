@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=23">
+  <link rel="stylesheet" href="styles.css?v=24">
 </head>
 <body>
   <header class="app-header">
@@ -163,24 +163,24 @@
     </div>
     <section id="atlasWorkspace" class="atlas-workspace" aria-labelledby="atlasTitle" hidden>
       <p class="eyebrow">Explore · Name · Tell your story</p><h2 id="atlasTitle">Your countries &amp; cities</h2>
-      <p>Your five countries are highlighted. Pick a country, then click a city to give it an identity. Your notes and settlement choices save with Download My Progress.</p>
+      <p>Your five countries are highlighted. Pick a country, then click a capital city or village to give it an identity. Your notes and settlement choices save with Download My Progress.</p>
       <div id="atlasCountries" class="action-row" aria-label="Your selected countries"></div>
       <div class="action-row atlas-tools"><button id="atlasOverview" class="secondary-button" type="button">All five countries</button><button id="atlasDownload" class="primary-button" type="button">Download this map</button><button id="atlasSaveProgress" class="secondary-button" type="button">Download My Progress</button><label class="army-toggle" hidden><input id="atlasShowArmies" type="checkbox"> Show this country’s regiments</label></div>
       <p id="atlasStatus" class="save-status" role="status">Your notes save in this browser. Download My Progress to keep a backup.</p>
       <p id="atlasMapNote" class="map-help"></p>
       <div id="atlasMap" class="atlas-map"><canvas id="atlasCanvas" width="1200" height="700" aria-label="Selected countries and cities"></canvas><div id="atlasMarkers"></div></div>
-      <p class="map-help">● City · ★ Capital. Click a marker or use the city list below. Colors match your five country buttons.</p>
+      <p class="map-help">● Village · ★ Capital city. Click a marker or use the settlement list below. Colors match your five country buttons.</p>
       <details class="atlas-card"><summary>Full Azgaar biome list</summary><p class="map-help" id="atlasBiomeNote"></p><div id="atlasBiomes" class="biome-legend"></div></details>
-      <section class="atlas-card settlement-panel" aria-labelledby="settlementTitle">
-        <p class="eyebrow">Inside your settlement · Maps by Watabou</p><h3 id="settlementTitle">Settlement map</h3>
-        <div class="action-row"><label>Map style<select id="settlementKind"><option value="city">City · natural colors</option><option value="village">Village · soft colors</option></select></label><button type="button" id="settlementGenerate" class="secondary-button">New layout</button><button type="button" id="settlementRotate" class="secondary-button">Rotate view 90°</button><a id="settlementOpen" target="_blank" rel="noopener noreferrer">Open editor / export map ↗</a></div>
-        <p id="settlementFacts"></p><div class="settlement-preview"><iframe id="settlementFrame" title="Watabou settlement map" loading="lazy" referrerpolicy="no-referrer"></iframe></div>
-        <p class="map-help">Click a city above to see its map. Rotation turns this preview only. Open the editor to change colors or export a map for your Google Doc. Changes made inside Watabou’s editor are separate from your progress backup. If the preview cannot load, use Open editor.</p>
-      </section>
       <div class="atlas-notebooks">
         <section class="atlas-card" aria-labelledby="atlasCountryTitle"><p class="eyebrow">Your country</p><h3 id="atlasCountryTitle"></h3><div id="atlasCountryEditor"></div></section>
-        <section class="atlas-card" aria-labelledby="atlasCityTitle"><p class="eyebrow">Your city</p><h3 id="atlasCityTitle">Choose a city</h3><label>City<select id="atlasCitySelect"></select></label><div id="atlasCityEditor"></div></section>
+        <section class="atlas-card" aria-labelledby="atlasCityTitle"><p id="atlasSettlementType" class="eyebrow">Your capital city</p><h3 id="atlasCityTitle">Choose a city</h3><label>Choose a capital city or village<select id="atlasCitySelect"></select></label><div id="atlasCityEditor"></div></section>
       </div>
+      <section class="atlas-card settlement-panel" aria-labelledby="settlementTitle">
+        <p class="eyebrow">Inside your settlement · Maps by Watabou</p><h3 id="settlementTitle">Settlement map</h3>
+        <div class="action-row"><span id="settlementKindLabel"></span><button type="button" id="settlementGenerate" class="secondary-button">New layout</button><button type="button" id="settlementRotate" class="secondary-button">Rotate view 90°</button><a id="settlementOpen" target="_blank" rel="noopener noreferrer">Open map editor ↗</a><a id="settlementExport" class="primary-button" target="_blank" rel="noopener noreferrer">Export PNG ↗</a></div>
+        <p id="settlementFacts"></p><p id="settlementExportHelp" class="map-help"></p><div class="settlement-preview"><iframe id="settlementFrame" title="Watabou settlement map" loading="lazy" referrerpolicy="no-referrer"></iframe></div>
+        <p class="map-help">Choose a capital city or village above to see its map. Rotation turns this preview only. Open the editor to change colors or export a map for your Google Doc. Changes made inside Watabou’s editor are separate from your progress backup. If the preview cannot load, use Open editor.</p>
+      </section>
       <section hidden class="atlas-card army-section" aria-labelledby="armyTitle"><p class="eyebrow">People behind the banners</p><h3 id="armyTitle">Regiments &amp; fictional generals</h3><p>Choose the regiments available for your next battle. Unchecked regiments stay home. The troop commitments on World &amp; battles can reduce this force further. Companies below are parts of the regiment, not extra troops.</p><p class="map-help">Commander personalities are story prompts. They do not give combat bonuses. Changing national troop totals redistributes troops among these same regiments.</p><div id="armySummary" role="status"></div><div id="regimentCards" class="regiment-cards"></div></section>
       <p class="learning-note">Your Google Docs task: download a map, add a heading and caption, and describe your country and cities. Build your own battle tables from the report facts.</p>
     </section>
@@ -238,15 +238,15 @@
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=23"></script>
-  <script src="azgaar.js?v=23"></script>
-  <script src="formations.js?v=23"></script>
-  <script src="campaign-core.js?v=23"></script>
-  <script src="app.js?v=23"></script>
-  <script src="battle-picture.js?v=23"></script>
-  <script src="battle-stories.js?v=23"></script>
-  <script src="battle-closeup.js?v=23"></script>
-  <script src="world.js?v=23"></script>
-  <script src="campaign.js?v=23"></script>
+  <script src="world-core.js?v=24"></script>
+  <script src="azgaar.js?v=24"></script>
+  <script src="formations.js?v=24"></script>
+  <script src="campaign-core.js?v=24"></script>
+  <script src="app.js?v=24"></script>
+  <script src="battle-picture.js?v=24"></script>
+  <script src="battle-stories.js?v=24"></script>
+  <script src="battle-closeup.js?v=24"></script>
+  <script src="world.js?v=24"></script>
+  <script src="campaign.js?v=24"></script>
 </body>
 </html>

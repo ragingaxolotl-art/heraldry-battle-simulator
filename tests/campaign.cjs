@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const ctx=vm.createContext({console,Math,Set,Map,Uint32Array});
+const ctx=vm.createContext({console,Math,Set,Map,Uint32Array,URL});
 for(const file of ['vendor/d3-delaunay.min.js','data/gria-template.js','world-core.js','azgaar.js','campaign-core.js'])vm.runInContext(fs.readFileSync(file,'utf8'),ctx);
 vm.runInContext(`const world=generateStudentWorld(42,GRIA_TEMPLATE);world.countries.forEach(c=>ensureCountryCampaign(world,c));`,ctx);
 const evaluate=s=>JSON.parse(vm.runInContext(`JSON.stringify(${s})`,ctx));
@@ -39,3 +39,11 @@ assert.equal(evaluate('populationRoundtrip.settlements[0].population'),3375);
 assert.equal(evaluate('imported.settlements[0].population'),null);
 assert.equal(evaluate('rebuilt.countries[0].cities[0].mapSeed'),evaluate('c.cities[0].mapSeed'));
 console.log('Passed: Azgaar population conversion and backup metadata, missing population remains unknown, stable settlement seeds.');
+
+vm.runInContext(`input.pack.burgs[0].walls=1;input.pack.burgs[0].port=1;const detailed=importAzgaarWorld(input);detailed.countries.forEach(c=>ensureCountryCampaign(detailed,c));const capital=detailed.countries[0].cities[0];capital.mapKind='village';ensureSettlement(detailed,capital);const village=detailed.countries[0].cities[1];village.mapKind='city';ensureSettlement(detailed,village);`,ctx);
+assert.equal(evaluate('capital.mapKind'),'city');assert.equal(evaluate('village.mapKind'),'village');
+assert.match(evaluate('settlementMapURL(capital,true)'),/walls=1/);assert.match(evaluate('settlementMapURL(capital,true)'),/coast=1/);
+assert(!evaluate('settlementMapURL(capital,true)').includes('preview=1'));
+assert.match(evaluate('settlementMapURL(village,true)'),/village-generator/);
+assert.equal(evaluate('capital.population'),3375);assert.equal(evaluate('village.populationSource'),'estimated');
+console.log('Passed: capitals always use labeled city maps, other settlements use villages, Azgaar feature parameters and automatic population fallback.');
