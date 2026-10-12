@@ -238,8 +238,8 @@ async function copyBattleData() {
   catch {downloadBlob(new Blob([text],{type:'text/plain'}),'battle-events.txt');worldMessage('Clipboard unavailable. Battle events downloaded as text.');}
 }
 function requestReplacement(action,message) {pendingAction=action;document.getElementById('replaceMessage').textContent=message;document.getElementById('replaceWorldDialog').showModal();}
-function newWorld() {
-  studentWorld=generateStudentWorld(freshSeed(),GRIA_TEMPLATE);
+function newWorld(seed=freshSeed()) {
+  studentWorld=generateStudentWorld(seed,GRIA_TEMPLATE);
   studentWorld.countries.forEach((country,i)=>studentWorld.countries.forEach((other,j)=>{
     if(j<=i)return;const relation=GRIA_TEMPLATE[i].diplomacy[other.templateId];studentWorld.relations[allianceKey(i,j)]=['Ally','Vassal','Suzerain'].includes(relation)?'ally':relation==='Enemy'?'enemy':'neutral';
   }));applyWorld();saveWorld();worldMessage('Your new world is ready. Download the clean PNG, then choose five countries below.');
@@ -347,6 +347,15 @@ document.getElementById('zoomIn').addEventListener('click',()=>setCamera(focusVi
 document.getElementById('zoomOut').addEventListener('click',()=>setCamera(focusView([camera.x+camera.w/2,camera.y+camera.h/2],camera.w*1.4)));
 document.getElementById('overviewMap').addEventListener('click',()=>setCamera({x:0,y:0,w:1200,h:700}));
 document.getElementById('downloadScene').addEventListener('click',downloadScenePicture);
+document.getElementById('restoreMapCodeForm').addEventListener('submit',event=>{
+  event.preventDefault();
+  const input=document.getElementById('restoreMapCode'),status=document.getElementById('restoreMapCodeStatus');
+  const code=input.value.trim().replace(/^World\s+/i,'').toUpperCase();
+  const seed=/^[0-9A-Z]{1,7}$/.test(code)?parseInt(code,36):NaN;
+  if(!Number.isInteger(seed)||seed<0||seed>4294967295){status.textContent='Enter a valid map code: the letters and numbers printed after World on your generated map.';input.focus();return;}
+  status.textContent='';
+  requestReplacement(()=>{newWorld(seed);input.value=seed.toString(36).toUpperCase();status.textContent=`Original map ${input.value} restored. Student edits and battle history are not included.`;},`Restore original map ${code}? This replaces your current world and student edits. Download My Progress first if you want to keep them.`);
+});
 document.getElementById('rerollWorld').addEventListener('click',()=>requestReplacement(newWorld,'Reroll replaces your current map, five country choices, armies, shields, and battle history. Download My Progress first if you want to keep this world.'));
 document.getElementById('cancelReplace').addEventListener('click',()=>{pendingAction=null;document.getElementById('replaceWorldDialog').close();});
 document.getElementById('confirmReplace').addEventListener('click',()=>{document.getElementById('replaceWorldDialog').close();if(pendingAction)pendingAction();pendingAction=null;});

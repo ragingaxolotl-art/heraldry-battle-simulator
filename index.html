@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=29">
+  <link rel="stylesheet" href="styles.css?v=30">
 </head>
 <body>
   <header class="app-header">
@@ -34,6 +34,12 @@
         <button id="saveProgress" class="secondary-button" type="button">Download My Progress</button>
         <label class="file-button">Open My Progress<input id="loadProgress" type="file" accept=".json,application/json"></label>
       </div>
+      <form id="restoreMapCodeForm" class="action-row map-actions">
+        <label for="restoreMapCode">Restore map from code<input id="restoreMapCode" type="text" maxlength="30" placeholder="Example: 1BCW1V7" autocomplete="off" spellcheck="false" aria-describedby="restoreMapCodeHelp"></label>
+        <button class="secondary-button" type="submit">Restore Original Map</button>
+      </form>
+      <p id="restoreMapCodeHelp" class="map-help">Enter the letters and numbers after “World” on your map. Restores generated geography and original country names—not student edits or battle history. Older maps may have different biome colors. Imported Azgaar maps need their original file.</p>
+      <p id="restoreMapCodeStatus" class="save-status" role="status"></p>
       <p id="worldStatus" role="status" class="save-status">Creating your world…</p>
       <p id="mapZoomLevel" class="map-help" aria-live="polite">1.0× · World view</p>
       <div id="worldMap" class="world-map"><canvas id="zoomMapCanvas" width="1200" height="700" hidden aria-hidden="true"></canvas>
@@ -251,16 +257,16 @@
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=29"></script>
-  <script src="azgaar.js?v=29"></script>
-  <script src="formations.js?v=29"></script>
-  <script src="campaign-core.js?v=29"></script>
-  <script src="app.js?v=29"></script>
-  <script src="battle-picture.js?v=29"></script>
-  <script src="battle-stories.js?v=29"></script>
-  <script src="battle-closeup.js?v=29"></script>
-  <script src="world.js?v=29"></script>
-  <script src="campaign.js?v=29"></script>
-  <script src="settlement-capture.js?v=29"></script>
+  <script src="world-core.js?v=30"></script>
+  <script src="azgaar.js?v=30"></script>
+  <script src="formations.js?v=30"></script>
+  <script src="campaign-core.js?v=30"></script>
+  <script src="app.js?v=30"></script>
+  <script src="battle-picture.js?v=30"></script>
+  <script src="battle-stories.js?v=30"></script>
+  <script src="battle-closeup.js?v=30"></script>
+  <script src="world.js?v=30"></script>
+  <script src="campaign.js?v=30"></script>
+  <script src="settlement-capture.js?v=30"></script>
 </body>
 </html>
