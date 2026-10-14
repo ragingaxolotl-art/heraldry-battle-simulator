@@ -35,9 +35,14 @@ function saveWorld() {
   captureWorld();
   if(preserveUnreadableSave){worldMessage("Automatic saving is paused to protect an unreadable save. Download My Progress to keep your current work.");return;}
   try { localStorage.setItem(STORAGE_KEY,JSON.stringify(compactWorld())); worldMessage('Saved in this browser. Download My Progress to keep a backup or change computers.'); }
-  catch { worldMessage('Browser storage is full or unavailable. Use Download My Progress to save your work.'); }
+  catch {
+    // Keep country work recoverable when accumulated battle pictures exceed browser storage.
+    const data=compactWorld();data.history=(data.history||[]).map(({mapSnapshot,scenes,...battle})=>battle);
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));worldMessage('Country work saved in this browser. Battle pictures were left out to save space; Download My Progress keeps the full backup.');}
+    catch{worldMessage('Browser storage is full or unavailable. Use Download My Progress to save your work.');}
+  }
 }
-function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveWorld(); drawWorld(); renderMarkers(); refreshRegionChoices(); updateNeutrals(); renderBattleChoices(); if(typeof refreshCampaign==='function')refreshCampaign(); },250); }
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveWorld(); drawWorld(); renderMarkers(); if(typeof updateClassroomNames==='function')updateClassroomNames(); refreshRegionChoices(); updateNeutrals(); renderBattleChoices(); if(typeof refreshCampaign==='function')refreshCampaign(); },250); }
 function clearBattle() {
   clearInterval(playbackTimer); activeBattle = null; playbackIndex = -1;
   document.getElementById('battleArrows').replaceChildren();
@@ -50,7 +55,8 @@ function clearBattle() {
 }
 function applyWorld() {
   pickedAttacker=null;document.getElementById('cancelBattlePick').hidden=true;document.getElementById('battlePickStatus').textContent='Choose the attacking country.';
-  loadingWorld = true; clearBattle(); createCountryCards();
+  studentWorld.selected=studentWorld.countries.map(c=>c.id);
+  loadingWorld = true; clearBattle(); createCountryCards(studentWorld.selected.length);
   cards().forEach((card,i) => {
     const country = studentWorld.countries[studentWorld.selected[i]];
     card.querySelector('.country-name').value = country.name;
@@ -87,11 +93,13 @@ function applyWorld() {
   renderBiomeKey();
   updateNeutrals();renderBattleChoices();renderAfterAction();
   if(typeof refreshCampaign==='function')refreshCampaign();
+  if(typeof refreshClassroom==='function')refreshClassroom();
 }
 function updateNeutrals() {
   cards().forEach((card,i)=>{const names=cards().filter((_,j)=>j!==i&&!alliances.has(allianceKey(i,j))&&!enemies.has(allianceKey(i,j))).map(c=>c.querySelector('.country-name').value);card.querySelector('.neutral-list').textContent=`Neutral: ${names.join(', ') || 'None'}`;});
 }
 function refreshRegionChoices() {
+  if(document.getElementById('countrySidebar'))return;
   if (!studentWorld) return;
   cards().forEach((card,i) => {
     const select=card.querySelector('.map-country'); if (!select) return;
@@ -150,6 +158,7 @@ function downloadPNG() {
   worldMessage('Clean PNG downloaded: country names included, shields and battle arrows excluded. Insert it into Google Docs.');
 }
 function renderMarkers() {
+  if(typeof renderClassroomMarkers==='function'){renderClassroomMarkers();return;}
   const overlay=document.getElementById('shieldMarkers');overlay.replaceChildren();
   studentWorld.selected.forEach((id,i)=>{
     const country=studentWorld.countries[id],button=document.createElement('button');button.type='button';button.className='map-shield';button.dataset.country=id;
@@ -242,10 +251,10 @@ function newWorld(seed=freshSeed()) {
   studentWorld=generateStudentWorld(seed,GRIA_TEMPLATE);
   studentWorld.countries.forEach((country,i)=>studentWorld.countries.forEach((other,j)=>{
     if(j<=i)return;const relation=GRIA_TEMPLATE[i].diplomacy[other.templateId];studentWorld.relations[allianceKey(i,j)]=['Ally','Vassal','Suzerain'].includes(relation)?'ally':relation==='Enemy'?'enemy':'neutral';
-  }));applyWorld();saveWorld();worldMessage('Your new world is ready. Download the clean PNG, then choose five countries below.');
+  }));applyWorld();saveWorld();worldMessage('Your world is ready. Click a territory to edit its country. Your work saves in this browser.');
 }
 function validateWorldSave(data) {
-  if(!data||data.version!==1||!Number.isInteger(data.seed)||data.seed<0||data.seed>4294967295||!Array.isArray(data.countries)||data.countries.length!==(data.azgaar?.pack?.states?.length || 15)||!Array.isArray(data.selected)||data.selected.length!==5||new Set(data.selected).size!==5||data.selected.some(id=>!Number.isInteger(id)||id<0||id>=data.countries.length))throw Error('Not a student world save.');
+  if(!data||data.version!==1||!Number.isInteger(data.seed)||data.seed<0||data.seed>4294967295||!Array.isArray(data.countries)||data.countries.length!==(data.azgaar?.pack?.states?.length || 15)||!Array.isArray(data.selected)||(data.selected.length<2||data.selected.length>data.countries.length)||new Set(data.selected).size!==data.selected.length||data.selected.some(id=>!Number.isInteger(id)||id<0||id>=data.countries.length))throw Error('Not a student world save.');
   data.countries.forEach((country,i)=>{
     if(country.id!==i||typeof country.name!=='string'||country.name.length>38||!['gold','cannons','books','pens','mages'].every(key=>Number.isInteger(country[key])&&country[key]>=0&&country[key]<=999999))throw Error('Invalid country data.');
     if(!Array.isArray(country.position)||country.position.length!==2||!country.position.every(Number.isFinite)||country.position[0]<0||country.position[0]>1200||country.position[1]<0||country.position[1]>700)throw Error('Invalid shield position.');
@@ -257,13 +266,19 @@ function validateWorldSave(data) {
   generated.countries.forEach((country,i)=>{for(const key of ['name','gold','cannons','books','pens','mages','position','shield'])country[key]=data.countries[i][key];for(const key of ['ruler','exports','currency','sport'])country[key]=typeof data.countries[i][key]==='string'?data.countries[i][key].slice(0,80):'';});
   if(data.background && typeof data.background==='string' && data.background.length<6000000 && /^data:image\/(png|jpeg|webp);base64,/.test(data.background))generated.background=data.background;
   generated.selected=data.selected;generated.relations={};
+  generated.editorCountry=Number.isInteger(data.editorCountry)&&data.countries[data.editorCountry]?data.editorCountry:0;
+  const plan=data.battlePlan;
+  if(plan&&Number.isInteger(plan.attacker)&&Number.isInteger(plan.defender)&&plan.attacker!==plan.defender&&data.countries[plan.attacker]&&data.countries[plan.defender]){
+    generated.battlePlan={attacker:plan.attacker,defender:plan.defender,helpers:{}};
+    for(const [id,target] of Object.entries(plan.helpers||{}))if(/^\d+$/.test(id)&&data.countries[Number(id)]&&Number(id)!==plan.attacker&&Number(id)!==plan.defender&&[plan.attacker,plan.defender].includes(target))generated.battlePlan.helpers[id]=target;
+  }
   for(const [key,value] of Object.entries(data.relations||{}))if(/^\d+-\d+$/.test(key)&&['ally','enemy','neutral'].includes(value))generated.relations[key]=value;
-  generated.settings={};for(const id of SETTINGS_IDS){const value=String(data.settings?.[id]??'');if(id==='terrain'&&['plains','hills','fortifications'].includes(value)||['sideAName','sideBName'].includes(id)&&/^[0-4]$/.test(value)||id==='chaosLevel'&&/^[1-5]$/.test(value)||['allyChance','hatredChance','betrayalChance'].includes(id)&&/^\d{1,3}$/.test(value)&&Number(value)<=100)generated.settings[id]=value;}
+  generated.settings={};for(const id of SETTINGS_IDS){const value=String(data.settings?.[id]??'');if(id==='terrain'&&['plains','hills','fortifications'].includes(value)||['sideAName','sideBName'].includes(id)&&/^\d+$/.test(value)&&Number(value)<data.countries.length||id==='chaosLevel'&&/^[1-5]$/.test(value)||['allyChance','hatredChance','betrayalChance'].includes(id)&&/^\d{1,3}$/.test(value)&&Number(value)<=100)generated.settings[id]=value;}
   // Replays are optional; malformed replay data never blocks recovery of the student's armies.
-  generated.history=Array.isArray(data.history)?data.history.slice(0,20).filter(b=>b&&typeof b.title==='string'&&typeof b.winner==='string'&&Array.isArray(b.events)&&b.events.length<100&&b.events.every(e=>typeof e==='string'&&e.length<2000)&&Array.isArray(b.arrows)&&b.arrows.length<=6&&b.arrows.every(a=>a&&[a.start,a.end].every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite))&&/^#[0-9a-f]{6}$/i.test(a.color)&&typeof a.label==='string'&&(a.eventIndex===undefined||Number.isInteger(a.eventIndex)&&a.eventIndex>=0&&a.eventIndex<100))):[];
+  generated.history=Array.isArray(data.history)?data.history.slice(0,20).filter(b=>b&&typeof b.title==='string'&&typeof b.winner==='string'&&Array.isArray(b.events)&&b.events.length<2000&&b.events.every(e=>typeof e==='string'&&e.length<2000)&&Array.isArray(b.arrows)&&b.arrows.length<=201&&b.arrows.every(a=>a&&[a.start,a.end].every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite))&&/^#[0-9a-f]{6}$/i.test(a.color)&&typeof a.label==='string'&&(a.eventIndex===undefined||Number.isInteger(a.eventIndex)&&a.eventIndex>=0&&a.eventIndex<2000))):[];
   generated.history.forEach(b=>{
     if(typeof b.mapSnapshot!=='string'||b.mapSnapshot.length>3000000||!/^data:image\/png;base64,/.test(b.mapSnapshot))delete b.mapSnapshot;
-    b.participants=Array.isArray(b.participants)?b.participants.filter(p=>p&&typeof p.name==='string'&&['A','B'].includes(p.side)&&typeof p.shield==='string'&&(!p.shield||/^data:image\/(png|jpeg|webp);base64,/.test(p.shield))).slice(0,5):[];
+    b.participants=Array.isArray(b.participants)?b.participants.filter(p=>p&&typeof p.name==='string'&&['A','B'].includes(p.side)&&typeof p.shield==='string'&&(!p.shield||/^data:image\/(png|jpeg|webp);base64,/.test(p.shield))).slice(0,200):[];
     delete b.rows;
     b.scenes=Array.isArray(b.scenes)?b.scenes.filter(s=>s&&typeof s.heading==='string'&&typeof s.text==='string'&&Array.isArray(s.facts)&&s.facts.every(f=>typeof f==='string')&&s.view&&['x','y','w','h'].every(k=>Number.isFinite(s.view[k]))&&s.view.w>=200&&s.view.w<=1200&&s.view.h>=100&&s.view.h<=700).slice(0,20):undefined;
     if(!b.scenes?.length)delete b.scenes;else b.scenes.forEach(s=>{if(!validTacticalScene(s.tactical))delete s.tactical;if(!Array.isArray(s.location)||s.location.length!==2||!s.location.every(Number.isFinite))delete s.location;});
@@ -340,7 +355,7 @@ document.getElementById('uploadMapImage').addEventListener('change',event=>{
   const file=event.target.files[0];if(!file)return;
   if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>30*1024*1024){worldMessage('Choose a PNG, JPEG, or WebP map smaller than 30 MB.');event.target.value='';return;}
   const reader=new FileReader(),img=new Image();
-  img.onload=()=>{const canvas=document.createElement('canvas');const scale=Math.min(1,2000/Math.max(img.width,img.height));canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const data=canvas.toDataURL('image/jpeg',.9);requestReplacement(()=>{captureWorld();studentWorld.background=data;studentWorld.countries.forEach(c=>c.cities?.forEach(city=>{city.source='manual';}));clearBattle();studentWorld.history=[];loadBackground();studentWorld.selected.forEach((id,i)=>{studentWorld.countries[id].position=[240+i*170,350];});applyWorld();saveWorld();worldMessage('Map uploaded. Type the five country names, add shields, and drag each to its place. A PNG supplies the picture; troop and terrain settings stay editable.');},'Use this map picture? Your country details and armies will stay, but the previous battle history will be cleared and shields will be placed across the new map.');};
+  img.onload=()=>{const canvas=document.createElement('canvas');const scale=Math.min(1,2000/Math.max(img.width,img.height));canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const data=canvas.toDataURL('image/jpeg',.9);requestReplacement(()=>{captureWorld();studentWorld.background=data;studentWorld.countries.forEach(c=>c.cities?.forEach(city=>{city.source='manual';}));clearBattle();studentWorld.history=[];loadBackground();studentWorld.selected.forEach((id,i)=>{const columns=Math.ceil(Math.sqrt(studentWorld.selected.length*1.7)),rows=Math.ceil(studentWorld.selected.length/columns);studentWorld.countries[id].position=[80+(i%columns)*1040/Math.max(1,columns-1),100+Math.floor(i/columns)*480/Math.max(1,rows-1)];});applyWorld();saveWorld();worldMessage('Map uploaded. Edit country names and shields in the side panel. Use Place shield to position them on the picture. A PNG supplies the picture; troop and terrain settings stay editable.');},'Use this map picture? Your country details and armies will stay, but the previous battle history will be cleared and shields will be placed across the new map.');};
   img.onerror=()=>{worldMessage('That image could not be opened. Try a smaller PNG or JPEG export.');};reader.onload=()=>{img.src=reader.result;};reader.onerror=()=>worldMessage('The map file could not be read. Please choose it again.');reader.readAsDataURL(file);event.target.value='';
 });
 document.getElementById('zoomIn').addEventListener('click',()=>setCamera(focusView([camera.x+camera.w/2,camera.y+camera.h/2],camera.w/1.4)));
@@ -356,7 +371,7 @@ document.getElementById('restoreMapCodeForm').addEventListener('submit',event=>{
   status.textContent='';
   requestReplacement(()=>{newWorld(seed);input.value=seed.toString(36).toUpperCase();status.textContent=`Original map ${input.value} restored. Student edits and battle history are not included.`;},`Restore original map ${code}? This replaces your current world and student edits. Download My Progress first if you want to keep them.`);
 });
-document.getElementById('rerollWorld').addEventListener('click',()=>requestReplacement(newWorld,'Reroll replaces your current map, five country choices, armies, shields, and battle history. Download My Progress first if you want to keep this world.'));
+document.getElementById('rerollWorld').addEventListener('click',()=>requestReplacement(newWorld,'Reroll replaces your current map, country details, armies, shields, and battle history. Download My Progress first if you want to keep this world.'));
 document.getElementById('cancelReplace').addEventListener('click',()=>{pendingAction=null;document.getElementById('replaceWorldDialog').close();});
 document.getElementById('confirmReplace').addEventListener('click',()=>{document.getElementById('replaceWorldDialog').close();if(pendingAction)pendingAction();pendingAction=null;});
 document.getElementById('downloadMap').addEventListener('click',downloadPNG);
@@ -388,7 +403,7 @@ function renderBiomeKey() {
 }
 document.getElementById('importAzgaar').addEventListener('change',async event=>{
   const file=event.target.files[0];if(!file)return;
-  try {if(file.size>40000000)throw Error('Choose a Full JSON smaller than 40 MB.');const world=importAzgaarWorld(JSON.parse(await file.text()));requestReplacement(()=>{studentWorld=world;applyWorld();saveWorld();worldMessage('Azgaar world imported: actual land, country boundaries, and biome colors. Choose five lands. Troops and gold are editable game defaults.');},'Import this Azgaar world? Save My Progress first to keep your current world.');}
+  try {if(file.size>40000000)throw Error('Choose a Full JSON smaller than 40 MB.');const world=importAzgaarWorld(JSON.parse(await file.text()));requestReplacement(()=>{studentWorld=world;applyWorld();saveWorld();worldMessage('Azgaar world imported: actual land, country boundaries, and biome colors. Click any country to edit it. Troops and gold are editable game defaults.');},'Import this Azgaar world? Save My Progress first to keep your current world.');}
   catch(error){worldMessage(error.message || 'Could not read this world. Choose Azgaar Export → JSON → full.');}event.target.value='';
 });
 
@@ -452,6 +467,7 @@ function chooseMapBattlefield(defender) {
   return {point:[...cell.point],terrain:hills?'hills':'plains',description:`Battle location: ${country.name}, ${biome.toLowerCase()} near its marker. ${hills?'Elevated ground gives the defenders a 15% terrain advantage.':'Open-ground combat rules apply; no elevation bonus.'} Biome and elevation come from ${studentWorld.azgaar?'the imported Azgaar map':'this generated map'}.`};
 }
 function renderBattleChoices() {
+  if(typeof renderClassroomPlan==='function'){renderClassroomPlan();return;}
   const host=document.getElementById('battleCountryChoices');if(!host)return;host.replaceChildren();
   studentWorld.selected.forEach((id,i)=>{const c=studentWorld.countries[id],button=document.createElement('button');button.type='button';button.className='secondary-button';button.textContent=c.name;button.disabled=pickedAttacker===i;button.setAttribute('aria-label',`${pickedAttacker===null?'Attack with':'Fight against'} ${c.name}`);
     button.addEventListener('click',()=>{if(pickedAttacker===null){pickedAttacker=i;document.getElementById('battlePickStatus').textContent=`${c.name} will attack. Choose its opponent to start.`;document.getElementById('cancelBattlePick').hidden=false;renderBattleChoices();return;}

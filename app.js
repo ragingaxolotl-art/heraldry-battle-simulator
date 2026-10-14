@@ -53,9 +53,9 @@ function clearOuterWhite(data, width, height) {
   return data;
 }
 
-function createCountryCards() {
+function createCountryCards(count=COUNTRY_COUNT) {
   grid.innerHTML = "";
-  for (let i = 0; i < COUNTRY_COUNT; i += 1) {
+  for (let i = 0; i < count; i += 1) {
     const card = template.content.firstElementChild.cloneNode(true);
     const imageInput = card.querySelector(".heraldry-input");
     const imagePreview = card.querySelector(".heraldry-preview");
@@ -164,6 +164,7 @@ function refreshCountryChoices() {
     select.replaceChildren(...names.map((name, i) => new Option(name, String(i))));
     select.value = previous || String(position);
   });
+  if(document.getElementById("countrySidebar"))return;
   cards.forEach((card, i) => {
     [[".ally-options", alliances, enemies, "Ally"], [".enemy-options", enemies, alliances, "Enemy"]].forEach(([selector, relationships, opposite, kind]) => {
       const options = card.querySelector(selector);
@@ -260,7 +261,7 @@ function resetForm() {
 
 function validate(countries) {
   if (countries.some((country) => !country.name)) {
-    return "Name all five countries before starting the battle.";
+    return "Name all countries before starting the battle.";
   }
   if (document.querySelector("#sideAName").value === document.querySelector("#sideBName").value) {
     return "Choose two different countries to battle.";
@@ -448,7 +449,7 @@ function runBattle() {
   const sideBName = countries[defender].name;
   const chance = Math.max(0, Math.min(100, Number(document.querySelector("#allyChance").value) || 0));
   const percentage = id => Math.max(0, Math.min(100, Number(document.getElementById(id).value) || 0));
-  const responses = resolveAllies(countries, attacker, defender, chance, Math.random, percentage("hatredChance"), percentage("betrayalChance"));
+  const responses = typeof resolveClassroomOrders==='function' ? resolveClassroomOrders(countries,attacker,defender) : resolveAllies(countries, attacker, defender, chance, Math.random, percentage("hatredChance"), percentage("betrayalChance"));
   countries = prepareBattleForces(countries);
   countries.filter(c=>!c.side).forEach(c=>responses.push(`${c.name} commits no troops; its entire army stays in reserve.`));
   document.querySelector("#allyResponses").replaceChildren(...responses.map(text => {

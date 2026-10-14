@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=30">
+  <link rel="stylesheet" href="styles.css?v=31">
 </head>
 <body>
   <header class="app-header">
     <div>
       <p class="eyebrow">Campaign command</p>
       <h1>Kingdoms at War</h1>
-      <p class="intro">Make your own world. Download the map for Google Docs, choose five countries, and write the history of their battles.</p>
+      <p class="intro">Make your own world. Download the map for Google Docs, edit your countries, and write the history of their battles.</p>
     </div>
     <div class="status-card" aria-live="polite">
       <span class="status-label">Mode</span>
@@ -42,11 +42,15 @@
       <p id="restoreMapCodeStatus" class="save-status" role="status"></p>
       <p id="worldStatus" role="status" class="save-status">Creating your world…</p>
       <p id="mapZoomLevel" class="map-help" aria-live="polite">1.0× · World view</p>
-      <div id="worldMap" class="world-map"><canvas id="zoomMapCanvas" width="1200" height="700" hidden aria-hidden="true"></canvas>
-        <div id="mapScene"><canvas id="worldCanvas" width="1200" height="700" role="img" aria-label="Your world map with named countries. Choose five using the country selectors below."></canvas>
+      <div class="world-editor-layout"><div class="world-editor-map">      <div id="worldMap" class="world-map"><canvas id="zoomMapCanvas" width="1200" height="700" hidden aria-hidden="true"></canvas>
+        <div id="mapScene"><canvas id="worldCanvas" width="1200" height="700" role="img" aria-label="Your world map with named countries. Click a territory to edit its country."></canvas>
         <svg id="battleArrows" viewBox="0 0 1200 700" aria-label="Battle movement arrows"></svg>
         <div id="shieldMarkers"></div></div>
       </div>
+</div>
+        <aside id="countrySidebar" aria-labelledby="countryEditorTitle"><h2 id="countryEditorTitle" aria-live="polite">Edit a country</h2><label>Choose a country<select id="editorCountrySelect"></select></label><p class="map-help">Click a territory or choose its name here. Your changes save in this browser.</p><button id="placePictureShield" type="button" class="secondary-button" hidden>Place shield on picture</button><div id="countryEditorHost"></div></aside>
+      </div>
+      <section class="classroom-orders"><h3>Plan your battle</h3><p>Drag a shield onto another country and choose Attack or Help. Red arrows attack; blue arrows help. Or use these choices:</p><div class="action-row"><label>Country<select id="orderSource"></select></label><label>Destination<select id="orderTarget"></select></label><button id="orderAttack" type="button" class="secondary-button">Attack</button><button id="orderHelp" type="button" class="secondary-button">Help</button></div><p id="classroomOrderStatus" role="status"></p><div id="classroomPlan"></div><div class="action-row"><button id="classroomSimulate" type="button" class="primary-button">Simulate battle</button><button id="classroomClear" type="button" class="secondary-button">Clear orders</button></div></section>
       <p class="map-help">Zoom in, then drag empty map ground to move around. You can also focus the map and use arrow keys.</p>
       <div class="map-tools action-row"><button id="zoomOut" class="secondary-button" type="button">Zoom Out</button><button id="zoomIn" class="secondary-button" type="button">Zoom In</button><button id="overviewMap" class="secondary-button" type="button">Overview</button><button id="downloadScene" hidden class="secondary-button" type="button" disabled>Download This Battle Picture</button></div>
       <div id="biomeLegend" class="biome-legend" role="group" aria-label="Map color key">
@@ -58,7 +62,7 @@
         <span><i class="biome-swatch" style="background:#adc9d7" aria-hidden="true"></i>Ocean · blue</span>
         <small>Shades vary slightly across the land. Dashed lines mark country borders.</small>
       </div>
-      <p class="map-help">The five numbered shields match your country cards. On an uploaded map, type the country names and place the shields yourself. Names and terrain are not automatically read from a PNG. Add your own shield below, then drag it on the map—or focus it and use arrow keys. Moving a shield does not change borders. Clean PNG downloads exclude shields and arrows.</p>
+      <p class="map-help">Click an outlined territory to edit that country. Uploaded shields appear on the map. Drag a shield onto another country to plan an attack or offer help. For an uploaded picture, use country markers or the country list; a PNG does not contain clickable borders.</p>
       <div id="playbackPanel" hidden class="playback-panel">
         <h3 id="playbackTitle">Battle replay</h3><h4 id="sceneHeading"></h4>
         <p class="map-help">Red: attack · Blue: reinforcement · Purple: withdrawal. Arrows show simplified movement, not calculated travel routes. Replay never deducts troops again.</p>
@@ -73,7 +77,7 @@
       </details>
       <p class="attribution">Classroom map generator with geography by Kingdoms at War. Starting economy, army composition, and diplomacy adapted from the teacher’s Gria world, created in <a href="https://github.com/Azgaar/Fantasy-Map-Generator" target="_blank" rel="noopener">Azgaar’s Fantasy Map Generator</a> (<a href="vendor/Azgaar-LICENSE.txt">MIT license</a>). Map geometry uses <a href="https://github.com/d3/d3-delaunay" target="_blank" rel="noopener">D3 Delaunay</a> (<a href="vendor/d3-delaunay-LICENSE.txt">ISC license</a>). New maps are simplified classroom worlds, not the full Azgaar generator.</p>
     </section>
-    <section class="country-section" aria-labelledby="countries-title">
+    <section hidden class="country-section" aria-labelledby="countries-title">
       <div class="section-heading">
         <div>
           <p class="eyebrow">2 · Choose your countries</p><h2 id="countries-title">Your Five Countries</h2>
@@ -87,7 +91,7 @@
       <div id="countryGrid" class="country-grid"></div>
     </section>
 
-    <section class="simple-battle"><p class="eyebrow">3 · Start a battle</p><h2>Choose two countries at odds</h2><p>Pick the attacking country, then its opponent. The battle starts when you choose the second country.</p><div id="battleCountryChoices" class="action-row"></div><p id="battlePickStatus" aria-live="polite">Choose the attacking country.</p><button id="cancelBattlePick" class="secondary-button" type="button" hidden>Choose again</button></section>
+    <section hidden class="simple-battle"><p class="eyebrow">3 · Start a battle</p><h2>Choose two countries at odds</h2><p>Pick the attacking country, then its opponent. The battle starts when you choose the second country.</p><div id="battleCountryChoices" class="action-row"></div><p id="battlePickStatus" aria-live="polite">Choose the attacking country.</p><button id="cancelBattlePick" class="secondary-button" type="button" hidden>Choose again</button></section>
     <section class="setup-bar" hidden aria-labelledby="battle-settings-title">
       <div>
         <p class="eyebrow">3 · Resolve one battle</p><h2 id="battle-settings-title">Battle Settings</h2>
@@ -169,13 +173,13 @@
     </div>
     <section id="atlasWorkspace" class="atlas-workspace" aria-labelledby="atlasTitle" hidden>
       <p class="eyebrow">Explore · Name · Tell your story</p><h2 id="atlasTitle">Your countries &amp; cities</h2>
-      <p>Your five countries are highlighted. Pick a country, then click a capital city or village to give it an identity. Your notes and settlement choices save with Download My Progress.</p>
+      <p>Your countries are highlighted. Pick a country, then click a capital city or village to give it an identity. Your notes and settlement choices save with Download My Progress.</p>
       <div id="atlasCountries" class="action-row" aria-label="Your selected countries"></div>
-      <div class="action-row atlas-tools"><button id="atlasOverview" class="secondary-button" type="button">All five countries</button><button id="atlasDownload" class="primary-button" type="button">Download this map</button><button id="atlasSaveProgress" class="secondary-button" type="button">Download My Progress</button><label class="army-toggle" hidden><input id="atlasShowArmies" type="checkbox"> Show this country’s regiments</label></div>
+      <div class="action-row atlas-tools"><button id="atlasOverview" class="secondary-button" type="button">All countries</button><button id="atlasDownload" class="primary-button" type="button">Download this map</button><button id="atlasSaveProgress" class="secondary-button" type="button">Download My Progress</button><label class="army-toggle" hidden><input id="atlasShowArmies" type="checkbox"> Show this country’s regiments</label></div>
       <p id="atlasStatus" class="save-status" role="status">Your notes save in this browser. Download My Progress to keep a backup.</p>
       <p id="atlasMapNote" class="map-help"></p>
       <div id="atlasMap" class="atlas-map"><canvas id="atlasCanvas" width="1200" height="700" aria-label="Selected countries and cities"></canvas><div id="atlasMarkers"></div></div>
-      <p class="map-help">● Village · ★ Capital city. Click a marker or use the settlement list below. Colors match your five country buttons.</p>
+      <p class="map-help">● Village · ★ Capital city. Click a marker or use the settlement list below. Colors match your country buttons.</p>
       <details class="atlas-card"><summary>Full Azgaar biome list</summary><p class="map-help" id="atlasBiomeNote"></p><div id="atlasBiomes" class="biome-legend"></div></details>
       <div class="atlas-notebooks">
         <section class="atlas-card" aria-labelledby="atlasCountryTitle"><p class="eyebrow">Your country</p><h3 id="atlasCountryTitle"></h3><div id="atlasCountryEditor"></div></section>
@@ -254,19 +258,21 @@
     </article>
   </template>
 
+  <dialog id="countryOrderDialog"><h2 id="countryOrderHeading">Choose an order</h2><p>Attack this country, or help it in the planned battle.</p><div class="action-row"><button id="dropAttack" type="button">Attack</button><button id="dropHelp" type="button">Help</button><button id="dropCancel" type="button">Cancel</button></div></dialog>
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=30"></script>
-  <script src="azgaar.js?v=30"></script>
-  <script src="formations.js?v=30"></script>
-  <script src="campaign-core.js?v=30"></script>
-  <script src="app.js?v=30"></script>
-  <script src="battle-picture.js?v=30"></script>
-  <script src="battle-stories.js?v=30"></script>
-  <script src="battle-closeup.js?v=30"></script>
-  <script src="world.js?v=30"></script>
-  <script src="campaign.js?v=30"></script>
-  <script src="settlement-capture.js?v=30"></script>
+  <script src="world-core.js?v=31"></script>
+  <script src="azgaar.js?v=31"></script>
+  <script src="formations.js?v=31"></script>
+  <script src="campaign-core.js?v=31"></script>
+  <script src="app.js?v=31"></script>
+  <script src="battle-picture.js?v=31"></script>
+  <script src="battle-stories.js?v=31"></script>
+  <script src="battle-closeup.js?v=31"></script>
+  <script src="world.js?v=31"></script>
+  <script src="campaign.js?v=31"></script>
+  <script src="settlement-capture.js?v=31"></script>
+  <script src="classroom-world.js?v=31"></script>
 </body>
 </html>

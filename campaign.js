@@ -35,7 +35,7 @@ function refreshCampaign() {
 function renderAtlasCountries() {
   const host=document.getElementById('atlasCountries');host.replaceChildren();
   studentWorld.selected.forEach((id,i)=>{
-    const country=studentWorld.countries[id],b=campaignElement('button',`${i+1} · ${country.name}`,'atlas-country-button');b.type='button';b.style.setProperty('--country-color',ATLAS_COLORS[i]);b.setAttribute('aria-pressed',String(id===atlasCountryId));
+    const country=studentWorld.countries[id],b=campaignElement('button',`${i+1} · ${country.name}`,'atlas-country-button');b.type='button';b.style.setProperty('--country-color',ATLAS_COLORS[i%ATLAS_COLORS.length]);b.setAttribute('aria-pressed',String(id===atlasCountryId));
     b.addEventListener('click',()=>selectAtlasCountry(id,true));host.append(b);
   });
 }
@@ -59,30 +59,30 @@ function drawAtlas(context=atlasCanvas.getContext('2d'),exporting=false) {
     const selected=new Set(studentWorld.selected),edges=new Map();
     studentWorld.cells.filter(c=>c.land&&selected.has(c.country)).forEach(cell=>{
       context.beginPath();cell.polygon.forEach((p,i)=>i?context.lineTo(...p):context.moveTo(...p));context.closePath();
-      context.fillStyle=ATLAS_COLORS[studentWorld.selected.indexOf(cell.country)];context.globalAlpha=cell.country===atlasCountryId ? .36 : .2;context.fill();context.globalAlpha=1;
+      context.fillStyle=ATLAS_COLORS[studentWorld.selected.indexOf(cell.country)%ATLAS_COLORS.length];context.globalAlpha=cell.country===atlasCountryId ? .36 : .2;context.fill();context.globalAlpha=1;
       cell.polygon.slice(0,-1).forEach((p,i)=>{const q=cell.polygon[i+1],key=[p.map(v=>v.toFixed(2)).join(','),q.map(v=>v.toFixed(2)).join(',')].sort().join('|');const previous=edges.get(key);if(previous&&previous.country===cell.country)edges.delete(key);else edges.set(key,{p,q,country:cell.country});});
     });
-    edges.forEach(e=>{context.beginPath();context.moveTo(...e.p);context.lineTo(...e.q);context.strokeStyle=ATLAS_COLORS[studentWorld.selected.indexOf(e.country)];context.lineWidth=e.country===atlasCountryId?2:1;context.stroke();});
+    edges.forEach(e=>{context.beginPath();context.moveTo(...e.p);context.lineTo(...e.q);context.strokeStyle=ATLAS_COLORS[studentWorld.selected.indexOf(e.country)%ATLAS_COLORS.length];context.lineWidth=e.country===atlasCountryId?2:1;context.stroke();});
   }else{
-    studentWorld.selected.forEach((id,i)=>{const c=studentWorld.countries[id];context.beginPath();context.arc(...c.position,38,0,Math.PI*2);context.fillStyle=ATLAS_COLORS[i]+'35';context.fill();context.strokeStyle=ATLAS_COLORS[i];context.lineWidth=3;context.stroke();});
+    studentWorld.selected.forEach((id,i)=>{const c=studentWorld.countries[id];context.beginPath();context.arc(...c.position,38,0,Math.PI*2);context.fillStyle=ATLAS_COLORS[i%ATLAS_COLORS.length]+'35';context.fill();context.strokeStyle=ATLAS_COLORS[i%ATLAS_COLORS.length];context.lineWidth=3;context.stroke();});
   }
   context.restore();
   if(exporting){
-    visibleAtlasCities().forEach(city=>{const [px,py]=atlasScreen(city.position);context.fillStyle=ATLAS_COLORS[studentWorld.selected.indexOf(city.country)];context.beginPath();context.arc(px,py,5,0,Math.PI*2);context.fill();context.font='bold 14px sans-serif';context.textAlign=px>1000?'right':'left';context.strokeStyle='#fffdf5';context.lineWidth=4;const label=`${city.capital?'★ ':''}${city.name}`;context.strokeText(label,px+8,py-8,210);context.fillText(label,px+8,py-8,210);});
+    visibleAtlasCities().forEach(city=>{const [px,py]=atlasScreen(city.position);context.fillStyle=ATLAS_COLORS[studentWorld.selected.indexOf(city.country)%ATLAS_COLORS.length];context.beginPath();context.arc(px,py,5,0,Math.PI*2);context.fill();context.font='bold 14px sans-serif';context.textAlign=px>1000?'right':'left';context.strokeStyle='#fffdf5';context.lineWidth=4;const label=`${city.capital?'★ ':''}${city.name}`;context.strokeText(label,px+8,py-8,210);context.fillText(label,px+8,py-8,210);});
     if(document.getElementById('atlasShowArmies').checked)[atlasCountryId].forEach(id=>{
       const c=studentWorld.countries[id];c.regiments.forEach((r,i)=>{const city=c.cities.find(s=>s.id===r.cityId)||c.cities[0];const [px,py]=atlasScreen(city.position);if(px<0||px>1200||py<0||py>650)return;context.font='12px sans-serif';context.textAlign=px>1000?'right':'left';context.strokeStyle='#fffdf5';context.lineWidth=3;context.fillStyle='#233c32';context.strokeText(`⚑ ${r.name}`,px+8,py+20+c.regiments.slice(0,i).filter(other=>other.cityId===r.cityId).length*17,230);context.fillText(`⚑ ${r.name}`,px+8,py+20+c.regiments.slice(0,i).filter(other=>other.cityId===r.cityId).length*17,230);});
     });
     context.textAlign='left';context.fillStyle='#fffdf5';context.fillRect(0,665,1200,35);context.font='12px sans-serif';context.fillStyle='#233c32';context.fillText('Kingdoms at War · Student atlas · '+(studentWorld.azgaar?'Map and settlements: Azgaar’s Fantasy Map Generator':'Generated classroom settlements')+(studentWorld.background?' · PNG placements are illustrative':''),15,688,1160);
   }else{
     renderAtlasMarkers();
-    document.getElementById('atlasMapNote').textContent=studentWorld.background?'Uploaded picture: colored circles identify your countries; borders cannot be read from a PNG. City positions are suggested. Use “Move this city” to place them yourself.':studentWorld.azgaar?'Azgaar country borders and settlement locations are preserved. Countries without exported settlements receive generated cities on their land.':'Cities are generated on each country’s land. Click a country button to zoom in; All five countries returns to the overview.';
+    document.getElementById('atlasMapNote').textContent=studentWorld.background?'Uploaded picture: colored circles identify your countries; borders cannot be read from a PNG. City positions are suggested. Use “Move this city” to place them yourself.':studentWorld.azgaar?'Azgaar country borders and settlement locations are preserved. Countries without exported settlements receive generated cities on their land.':'Cities are generated on each country’s land. Click a country button to zoom in; All countries returns to the overview.';
   }
 }
 let movingAtlasCity=false;
 function renderAtlasMarkers() {
   const host=document.getElementById('atlasMarkers');host.replaceChildren();
   visibleAtlasCities().forEach(city=>{
-    const [x,y]=atlasScreen(city.position),b=campaignElement('button',`${city.capital?'★':'●'}${city.country===atlasCountryId||city.capital?' '+(city.name||'Unnamed city'):''}`,'atlas-city-marker');b.type='button';b.style.left=`${x/12}%`;b.style.top=`${y/7}%`;b.style.setProperty('--country-color',ATLAS_COLORS[studentWorld.selected.indexOf(city.country)]);b.setAttribute('aria-label',`${city.name}, ${studentWorld.countries[city.country].name}, ${city.capital?'capital city':'village'}`);b.setAttribute('aria-pressed',String(city.id===atlasCityId));b.title=b.getAttribute('aria-label');
+    const [x,y]=atlasScreen(city.position),b=campaignElement('button',`${city.capital?'★':'●'}${city.country===atlasCountryId||city.capital?' '+(city.name||'Unnamed city'):''}`,'atlas-city-marker');b.type='button';b.style.left=`${x/12}%`;b.style.top=`${y/7}%`;b.style.setProperty('--country-color',ATLAS_COLORS[studentWorld.selected.indexOf(city.country)%ATLAS_COLORS.length]);b.setAttribute('aria-label',`${city.name}, ${studentWorld.countries[city.country].name}, ${city.capital?'capital city':'village'}`);b.setAttribute('aria-pressed',String(city.id===atlasCityId));b.title=b.getAttribute('aria-label');
     b.addEventListener('click',()=>{selectAtlasCountry(city.country,false,city.id);document.getElementById('atlasCityEditor').querySelector('input').focus({preventScroll:true});});host.append(b);
   });
   if(document.getElementById('atlasShowArmies').checked)[atlasCountryId].forEach(id=>{
