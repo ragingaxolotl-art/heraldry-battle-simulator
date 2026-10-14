@@ -684,3 +684,7 @@ dialog p { line-height: 1.6; }
 
 #classroomOrderArrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 #countryEditorHost .heraldry-drop{height:130px;min-height:130px}#countryEditorHost .shield-tools{font-size:12px;padding:8px}#countryEditorHost .shield-tools button{font-size:12px;padding:6px}
+
+/* Keep uploaded shields within the compact country editor preview. */
+#countryEditorHost .heraldry-drop{overflow:hidden}
+#countryEditorHost .heraldry-preview{height:100%;max-height:130px;min-height:0;object-fit:contain;padding:6px;box-sizing:border-box}
