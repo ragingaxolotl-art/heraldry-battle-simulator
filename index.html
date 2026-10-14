@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kingdoms at War</title>
   <meta name="description" content="A strategy battle simulator with diplomacy, terrain, and persistent army losses.">
-  <link rel="stylesheet" href="styles.css?v=35">
+  <link rel="stylesheet" href="styles.css?v=36">
 </head>
 <body>
   <header class="app-header">
@@ -238,22 +238,22 @@
           Gold
           <input class="country-gold" type="number" min="0" max="999999" step="1" value="100">
         </label>
-        <p class="wide-field map-help">Available troops are shown below. Countries automatically send half of each troop type (rounded up). The rest stay home in reserve.</p>
+        <p class="wide-field map-help">Available troops are shown below. Troops are sent automatically based on the army left: smaller armies keep a larger share at home. For example, an army of 20 sends 6; an army of 100 sends 45. The rest stay in reserve.</p>
         <label>
           Artillery
-          <input class="country-cannons" readonly title="Available troops — half sent automatically, rounded up" type="number" min="0" max="999999" step="1" value="5">
+          <input class="country-cannons" readonly title="Available troops — battle force adjusts automatically to army size" type="number" min="0" max="999999" step="1" value="5">
         </label>
         <label>
           Archers
-          <input class="country-books" readonly title="Available troops — half sent automatically, rounded up" type="number" min="0" max="999999" step="1" value="5">
+          <input class="country-books" readonly title="Available troops — battle force adjusts automatically to army size" type="number" min="0" max="999999" step="1" value="5">
         </label>
         <label>
           Infantry
-          <input class="country-pens" readonly title="Available troops — half sent automatically, rounded up" type="number" min="0" max="999999" step="1" value="25">
+          <input class="country-pens" readonly title="Available troops — battle force adjusts automatically to army size" type="number" min="0" max="999999" step="1" value="25">
         </label>
         <label>
           Cavalry
-          <input class="country-mages" readonly title="Available troops — half sent automatically, rounded up" type="number" min="0" max="999999" step="1" value="3">
+          <input class="country-mages" readonly title="Available troops — battle force adjusts automatically to army size" type="number" min="0" max="999999" step="1" value="3">
         </label>
       </div>
     </article>
@@ -263,17 +263,17 @@
   <dialog id="replaceWorldDialog"><h2>Replace your current world?</h2><p id="replaceMessage"></p><div class="action-row"><button id="cancelReplace" class="secondary-button" type="button">Keep My World</button><button id="confirmReplace" class="primary-button" type="button">Replace World</button></div></dialog>
   <script src="vendor/d3-delaunay.min.js"></script>
   <script src="data/gria-template.js"></script>
-  <script src="world-core.js?v=35"></script>
-  <script src="azgaar.js?v=35"></script>
-  <script src="formations.js?v=35"></script>
-  <script src="campaign-core.js?v=35"></script>
-  <script src="app.js?v=35"></script>
-  <script src="battle-picture.js?v=35"></script>
-  <script src="battle-stories.js?v=35"></script>
-  <script src="battle-closeup.js?v=35"></script>
-  <script src="world.js?v=35"></script>
-  <script src="campaign.js?v=35"></script>
-  <script src="settlement-capture.js?v=35"></script>
-  <script src="classroom-world.js?v=35"></script>
+  <script src="world-core.js?v=36"></script>
+  <script src="azgaar.js?v=36"></script>
+  <script src="formations.js?v=36"></script>
+  <script src="campaign-core.js?v=36"></script>
+  <script src="app.js?v=36"></script>
+  <script src="battle-picture.js?v=36"></script>
+  <script src="battle-stories.js?v=36"></script>
+  <script src="battle-closeup.js?v=36"></script>
+  <script src="world.js?v=36"></script>
+  <script src="campaign.js?v=36"></script>
+  <script src="settlement-capture.js?v=36"></script>
+  <script src="classroom-world.js?v=36"></script>
 </body>
 </html>

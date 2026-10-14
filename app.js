@@ -17,6 +17,22 @@ const UNIT_TYPES = [
 const chaosLabels = {1: "Low", 2: "Limited", 3: "Moderate", 4: "High", 5: "Very high"};
 const armySize = country => UNIT_TYPES.reduce((sum, unit) => sum + country[unit.key], 0);
 
+// Classroom game rule: smaller remaining armies protect a larger reserve.
+function automaticDeployment(counts) {
+  const total=UNIT_TYPES.reduce((sum,u)=>sum+counts[u.key],0);
+  const sent=Object.fromEntries(UNIT_TYPES.map(u=>[u.key,0]));
+  if(!total)return sent;
+  const share=.25+.4*total/(total+100);
+  const target=Math.min(total===1?1:total-1,Math.max(1,Math.round(total*share)));
+  const remainders=UNIT_TYPES.map(u=>{
+    const exact=counts[u.key]*target/total;sent[u.key]=Math.floor(exact);
+    return {key:u.key,remainder:exact-sent[u.key]};
+  }).sort((a,b)=>b.remainder-a.remainder);
+  let left=target-Object.values(sent).reduce((sum,n)=>sum+n,0);
+  for(const u of remainders){if(!left)break;if(sent[u.key]<counts[u.key]){sent[u.key]++;left--;}}
+  return sent;
+}
+
 const grid = document.querySelector("#countryGrid");
 const template = document.querySelector("#countryTemplate");
 const chaosLevel = document.querySelector("#chaosLevel");
@@ -204,7 +220,7 @@ function getCountries() {
     side: null,
     formation: card.querySelector('.formation-choice').value,
     maneuver: card.querySelector('.maneuver-choice').value,
-    commitment: Object.fromEntries(UNIT_TYPES.map(u => [u.key, Math.ceil(numberValue(card, `.country-${u.key}`) / 2)])),
+    commitment: automaticDeployment(Object.fromEntries(UNIT_TYPES.map(u => [u.key, numberValue(card, `.country-${u.key}`)]))),
     gold: numberValue(card, ".country-gold"),
     cannons: numberValue(card, ".country-cannons"),
     books: numberValue(card, ".country-books"),
