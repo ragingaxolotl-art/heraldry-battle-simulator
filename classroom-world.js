@@ -69,13 +69,22 @@ function renderClassroomMarkers(){
   selectClassroomCountry(studentWorld.editorCountry??0,false);
 }
 function orderStatus(text){document.getElementById('classroomOrderStatus').textContent=text;}
+function classroomPlans(){
+  if(!Array.isArray(studentWorld.battlePlans))studentWorld.battlePlans=studentWorld.battlePlan?[studentWorld.battlePlan]:[];
+  return studentWorld.battlePlans;
+}
 function setClassroomOrder(source,target,kind){
   if(source===target){orderStatus('Choose two different countries.');return;}
   if(kind==='attack'){
-    studentWorld.battlePlan={attacker:source,defender:target,helpers:{}};
-    orderStatus('Attack planned. Add helpers if you want, then click Simulate battle.');
+    const plans=classroomPlans();
+    let plan=plans.find(p=>p.attacker===source&&p.defender===target);
+    if(!plan){if(plans.length>=20){orderStatus('Simulate these 20 battles before adding more.');return;}plan={attacker:source,defender:target,helpers:{}};plans.push(plan);}
+    studentWorld.battlePlan=plan;
+    orderStatus('Attack added. Add more attacks or helpers, then click Simulate battles.');
   }else{
-    const plan=studentWorld.battlePlan;
+    const matches=classroomPlans().filter(p=>[p.attacker,p.defender].includes(target)&&![p.attacker,p.defender].includes(source));
+    const plan=matches.includes(studentWorld.battlePlan)?studentWorld.battlePlan:matches.length===1?matches[0]:null;
+    if(matches.length>1&&!plan){orderStatus('Select the battle below, then add this helper.');return;}
     if(!plan){orderStatus('Plan an attack first. Then choose which side to help.');return;}
     if([plan.attacker,plan.defender].includes(source)){orderStatus('The attacker and defender are already in the battle. Choose a different helper.');return;}
     if(![plan.attacker,plan.defender].includes(target)){orderStatus('Help the attacking or defending country in this battle.');return;}
@@ -84,20 +93,25 @@ function setClassroomOrder(source,target,kind){
   saveWorld();renderClassroomPlan();
 }
 function renderClassroomPlan(){
-  const host=document.getElementById('classroomPlan');if(!host)return;renderOrderArrows();host.replaceChildren();const plan=studentWorld.battlePlan;document.getElementById('classroomSimulate').disabled=!plan;
-  if(!plan){host.textContent='No attack planned yet.';return;}
+  const host=document.getElementById('classroomPlan');if(!host)return;renderOrderArrows();host.replaceChildren();const plans=classroomPlans();document.getElementById('classroomSimulate').disabled=!plans.length;
+  if(!plans.length){host.textContent='No attacks planned yet.';return;}
+  for(const [index,plan] of plans.entries()){
+  const choose=document.createElement('button');choose.type='button';choose.textContent=`Battle ${index+1}${studentWorld.battlePlan===plan?' · Selected for helpers':''}`;choose.addEventListener('click',()=>{studentWorld.battlePlan=plan;saveWorld();renderClassroomPlan();});host.append(choose);
+  const removeAttack=document.createElement('button');removeAttack.type='button';removeAttack.textContent='Remove attack';removeAttack.addEventListener('click',()=>{plans.splice(index,1);studentWorld.battlePlan=plans[0]||null;saveWorld();renderClassroomPlan();});host.append(removeAttack);
   const title=document.createElement('p');title.textContent=`${studentWorld.countries[plan.attacker].name} attacks ${studentWorld.countries[plan.defender].name}.`;host.append(title);
   for(const [id,target] of Object.entries(plan.helpers)){
     const row=document.createElement('p');row.textContent=`${studentWorld.countries[id].name} helps ${studentWorld.countries[target].name}. `;const remove=document.createElement('button');remove.type='button';remove.textContent='Remove help';remove.addEventListener('click',()=>{delete plan.helpers[id];saveWorld();renderClassroomPlan();});row.append(remove);host.append(row);
+  }
   }
 }
 function renderOrderArrows(){
   const ns='http://www.w3.org/2000/svg';let svg=document.getElementById('classroomOrderArrows');
   if(!svg){svg=document.createElementNS(ns,'svg');svg.id='classroomOrderArrows';svg.setAttribute('viewBox','0 0 1200 700');document.getElementById('mapScene').append(svg);}
-  svg.replaceChildren();const p=studentWorld.battlePlan;if(!p)return;
+  svg.replaceChildren();for(const p of classroomPlans()){
   for(const [source,target,color] of [[p.attacker,p.defender,'#b33226'],...Object.entries(p.helpers).map(([id,target])=>[Number(id),target,'#225fac'])]){
     const a=studentWorld.countries[source].position,b=studentWorld.countries[target].position,angle=Math.atan2(b[1]-a[1],b[0]-a[0]);
     const path=document.createElementNS(ns,'path');path.setAttribute('d',`M${a[0]},${a[1]}L${b[0]},${b[1]}M${b[0]-16*Math.cos(angle-.5)},${b[1]-16*Math.sin(angle-.5)}L${b[0]},${b[1]}L${b[0]-16*Math.cos(angle+.5)},${b[1]-16*Math.sin(angle+.5)}`);path.setAttribute('stroke',color);path.setAttribute('fill','none');path.setAttribute('stroke-width','3');svg.append(path);
+  }
   }
 }
 function resolveClassroomOrders(countries,attacker,defender){
@@ -111,10 +125,18 @@ for(const kind of ['Attack','Help']){
   document.getElementById('drop'+kind).addEventListener('click',()=>{document.getElementById('countryOrderDialog').close();if(dropOrder)setClassroomOrder(dropOrder.source,dropOrder.target,kind.toLowerCase());dropOrder=null;});
 }
 document.getElementById('dropCancel').addEventListener('click',()=>{dropOrder=null;document.getElementById('countryOrderDialog').close();});
-document.getElementById('classroomClear').addEventListener('click',()=>{delete studentWorld.battlePlan;saveWorld();renderClassroomPlan();orderStatus('Orders cleared.');});
+document.getElementById('classroomClear').addEventListener('click',()=>{delete studentWorld.battlePlan;studentWorld.battlePlans=[];saveWorld();renderClassroomPlan();orderStatus('Orders cleared.');});
 document.getElementById('classroomSimulate').addEventListener('click',()=>{
-  const plan=studentWorld.battlePlan;if(!plan)return;captureWorld();document.getElementById('sideAName').value=String(studentWorld.selected.indexOf(plan.attacker));document.getElementById('sideBName').value=String(studentWorld.selected.indexOf(plan.defender));
-  runBattle();orderStatus(formMessage.textContent||'Battle complete. Read your report below.');
+  const plans=classroomPlans();if(!plans.length)return;captureWorld();
+  let completed=0,blockedReason='';
+  while(plans.length){
+    const plan=plans[0];studentWorld.battlePlan=plan;
+    document.getElementById('sideAName').value=String(studentWorld.selected.indexOf(plan.attacker));document.getElementById('sideBName').value=String(studentWorld.selected.indexOf(plan.defender));
+    const error=validate(getCountries());if(error){blockedReason=error;break;}
+    runBattle();plans.shift();completed++;studentWorld.battlePlan=plans[0]||null;saveWorld();
+  }
+  renderClassroomPlan();orderStatus(`${completed} battle${completed===1?'':'s'} complete. Each has its own report below.${plans.length?' '+blockedReason+' Remaining attacks are still queued.':''}`);
+
 });
 window.addEventListener('pagehide',()=>saveWorld());
 refreshClassroom();

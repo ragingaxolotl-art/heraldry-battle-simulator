@@ -1,0 +1,9 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});try{
+const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.BATTLE_URL||'http://127.0.0.1:8021');
+await page.evaluate(()=>{setClassroomOrder(0,1,'attack');setClassroomOrder(2,3,'attack');setClassroomOrder(4,3,'help');setClassroomOrder(0,1,'attack');});
+assert.equal(await page.evaluate(()=>classroomPlans().length),2);assert.equal(await page.locator('#classroomOrderArrows path').count(),3);await page.reload();assert.equal(await page.evaluate(()=>classroomPlans().length),2);assert.equal(await page.evaluate(()=>classroomPlans()[1].helpers[4]),3);
+await page.locator('#classroomSimulate').click();await page.waitForFunction(()=>document.querySelectorAll('.simple-battle-result').length===2&&document.querySelectorAll('.simple-country-results').length===2);
+assert.equal(await page.evaluate(()=>studentWorld.history.length),2);assert.equal(await page.evaluate(()=>studentWorld.history[0].participants.length),3);assert.equal(await page.evaluate(()=>studentWorld.history[1].participants.length),2);assert.equal(await page.evaluate(()=>classroomPlans().length),0);assert(await page.locator('#classroomSimulate').isDisabled());
+await page.reload();assert.equal(await page.evaluate(()=>studentWorld.history.length),2);assert.equal(await page.evaluate(()=>classroomPlans().length),0);assert.deepEqual(errors,[]);console.log('PASS multiple attacks, duplicate prevention, separate helpers, restored queue, separate reports, completed orders cleared and saved');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

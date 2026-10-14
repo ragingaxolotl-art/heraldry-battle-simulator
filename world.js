@@ -267,11 +267,14 @@ function validateWorldSave(data) {
   if(data.background && typeof data.background==='string' && data.background.length<6000000 && /^data:image\/(png|jpeg|webp);base64,/.test(data.background))generated.background=data.background;
   generated.selected=data.selected;generated.relations={};
   generated.editorCountry=Number.isInteger(data.editorCountry)&&data.countries[data.editorCountry]?data.editorCountry:0;
-  const plan=data.battlePlan;
-  if(plan&&Number.isInteger(plan.attacker)&&Number.isInteger(plan.defender)&&plan.attacker!==plan.defender&&data.countries[plan.attacker]&&data.countries[plan.defender]){
-    generated.battlePlan={attacker:plan.attacker,defender:plan.defender,helpers:{}};
-    for(const [id,target] of Object.entries(plan.helpers||{}))if(/^\d+$/.test(id)&&data.countries[Number(id)]&&Number(id)!==plan.attacker&&Number(id)!==plan.defender&&[plan.attacker,plan.defender].includes(target))generated.battlePlan.helpers[id]=target;
+  generated.battlePlans=[];
+  for(const plan of (Array.isArray(data.battlePlans)?data.battlePlans:[data.battlePlan]).slice(0,20)){
+    if(!plan||!Number.isInteger(plan.attacker)||!Number.isInteger(plan.defender)||plan.attacker===plan.defender||!data.countries[plan.attacker]||!data.countries[plan.defender])continue;
+    const clean={attacker:plan.attacker,defender:plan.defender,helpers:{}};
+    for(const [id,target] of Object.entries(plan.helpers||{}))if(/^\d+$/.test(id)&&data.countries[Number(id)]&&Number(id)!==plan.attacker&&Number(id)!==plan.defender&&[plan.attacker,plan.defender].includes(target))clean.helpers[id]=target;
+    generated.battlePlans.push(clean);
   }
+  generated.battlePlan=generated.battlePlans.find(p=>p.attacker===data.battlePlan?.attacker&&p.defender===data.battlePlan?.defender)||generated.battlePlans[0]||null;
   for(const [key,value] of Object.entries(data.relations||{}))if(/^\d+-\d+$/.test(key)&&['ally','enemy','neutral'].includes(value))generated.relations[key]=value;
   generated.settings={};for(const id of SETTINGS_IDS){const value=String(data.settings?.[id]??'');if(id==='terrain'&&['plains','hills','fortifications'].includes(value)||['sideAName','sideBName'].includes(id)&&/^\d+$/.test(value)&&Number(value)<data.countries.length||id==='chaosLevel'&&/^[1-5]$/.test(value)||['allyChance','hatredChance','betrayalChance'].includes(id)&&/^\d{1,3}$/.test(value)&&Number(value)<=100)generated.settings[id]=value;}
   // Replays are optional; malformed replay data never blocks recovery of the student's armies.
