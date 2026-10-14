@@ -56,6 +56,7 @@ function countryAtPointer(x,y){
 function renderClassroomMarkers(){
   const host=document.getElementById('shieldMarkers');host.replaceChildren();renderTerritories();
   for(const c of studentWorld.countries){
+    if(!c.shield)continue;
     const button=document.createElement('button');button.type='button';button.className='map-shield classroom-shield';button.dataset.country=c.id;button.style.left=`${c.position[0]/12}%`;button.style.top=`${c.position[1]/7}%`;button.setAttribute('aria-label',`Edit or drag ${c.name}`);button.title=`${c.name}: click to edit, drag to Attack or Help`;
     if(c.shield){const img=document.createElement('img');img.src=c.shield;img.alt='';img.draggable=false;button.append(img);}else{button.textContent='⚑';button.style.background=c.color;}
     const name=document.createElement('span');name.className='shield-name';name.textContent=c.name;button.append(name);

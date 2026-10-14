@@ -122,6 +122,7 @@ function createCountryCards(count=COUNTRY_COUNT) {
 
     const deployment = document.createElement('fieldset');
     deployment.className = 'wide-field deployment';
+    deployment.hidden = true;
     deployment.innerHTML = '<legend>Commit to next battle</legend><p>Choose how many of each type to send if this nation joins. Blank means all available troops. The rest stay safely in reserve.</p>';
     UNIT_TYPES.forEach(unit => {
       const label = document.createElement('label');
@@ -203,7 +204,7 @@ function getCountries() {
     side: null,
     formation: card.querySelector('.formation-choice').value,
     maneuver: card.querySelector('.maneuver-choice').value,
-    commitment: Object.fromEntries(UNIT_TYPES.map(u => {const value=card.querySelector(`.commit-${u.key}`).value; return [u.key, value === '' ? null : Math.min(999999,Math.max(0,Math.floor(Number(value)||0)))];})),
+    commitment: Object.fromEntries(UNIT_TYPES.map(u => [u.key, null])),
     gold: numberValue(card, ".country-gold"),
     cannons: numberValue(card, ".country-cannons"),
     books: numberValue(card, ".country-books"),
