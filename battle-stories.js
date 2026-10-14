@@ -65,8 +65,7 @@ function storyReinforcements(battle,t,pick) {
 function troopPerformance(formation) {
   const deployed=formation.units.filter(u=>u.committed>0);
   const percent=u=>(100*u.remaining/u.committed).toFixed(1).replace(/\.0$/,'');
-  const rows=formation.units.map(u=>{
-    if(!u.committed)return {key:u.key,text:`${u.label}: not sent into this battle.`};
+  const rows=deployed.map(u=>{
     const fraction=u.remaining/u.committed;
     const assessment=!u.remaining?'No committed troops returned':!u.lost?'Returned at full strength':fraction>=.9?'Light losses':fraction>=.7?'Most troops returned':fraction>=.5?'Heavy losses':'Very heavy losses';
     return {key:u.key,text:`${u.label}: ${percent(u)}% returned — ${assessment.toLowerCase()}.`};

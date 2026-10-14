@@ -204,7 +204,7 @@ function getCountries() {
     side: null,
     formation: card.querySelector('.formation-choice').value,
     maneuver: card.querySelector('.maneuver-choice').value,
-    commitment: Object.fromEntries(UNIT_TYPES.map(u => [u.key, null])),
+    commitment: Object.fromEntries(UNIT_TYPES.map(u => [u.key, Math.ceil(numberValue(card, `.country-${u.key}`) / 2)])),
     gold: numberValue(card, ".country-gold"),
     cannons: numberValue(card, ".country-cannons"),
     books: numberValue(card, ".country-books"),
@@ -577,7 +577,7 @@ function renderCasualties(records) {
     title.textContent = `${record.name}${record.side ? "" : " — neutral"}`;
     const details = document.createElement("div");
     details.className = "loss-facts";
-    record.units.forEach(unit => {
+    record.units.filter(unit => unit.before > 0).forEach(unit => {
       const fact = document.createElement("p");
       fact.textContent = `${unit.label}: committed ${unit.before.toLocaleString()}; lost ${unit.lost.toLocaleString()}; ${unit.remaining.toLocaleString()} returned; ${unit.reserve.toLocaleString()} in reserve; ${unit.nationalRemaining.toLocaleString()} available nationally.`;
       details.append(fact);
@@ -625,7 +625,7 @@ function buildTextReport(data) {
     ...[...document.querySelectorAll("#allyResponses li")].map(item => item.textContent),
     "",
     "Casualties (before / lost / remaining):",
-    ...data.combat.casualties.map(record => `${record.name}: ${record.units.map(unit => `${unit.label} ${unit.before}/${unit.lost}/${unit.remaining}, reserve ${unit.reserve}, national remaining ${unit.nationalRemaining}`).join("; ")}`),
+    ...data.combat.casualties.map(record => `${record.name}: ${record.units.filter(unit => unit.before > 0).map(unit => `${unit.label} ${unit.before}/${unit.lost}/${unit.remaining}, reserve ${unit.reserve}, national remaining ${unit.nationalRemaining}`).join("; ")}`),
     "",
     "Combat rounds:",
     ...data.combat.rounds,
